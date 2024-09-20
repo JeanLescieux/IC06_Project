@@ -33,7 +33,7 @@ class Game:
                     self.player.move("right")
 
     def update(self):
-        pass  # Ici tu peux ajouter de la logique comme les collisions
+        pass # Ici si on veut rajouter collision etc
 
     def draw(self):
         self.screen.fill((0, 0, 0))

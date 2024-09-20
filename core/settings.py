@@ -1,4 +1,3 @@
-# settings.py
 
 SCREEN_WIDTH = 250
 SCREEN_HEIGHT = 250

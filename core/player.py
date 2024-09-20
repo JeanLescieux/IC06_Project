@@ -3,7 +3,7 @@ import os
 
 class Player:
     def __init__(self, start_pos):
-        # Charger l'image du joueur à partir du dossier sprites
+        # Charger l'image du joueur
         self.image = pygame.image.load(os.path.join("assets", "sprites", "test.png")).convert_alpha()
 
         # Redimensionner l'image pour qu'elle ne dépasse pas la taille de la case
