@@ -1,43 +1,53 @@
 import pygame
+from core.settings import *
 from core.player import Player
 from core.level import Level
 
 class Game:
     def __init__(self):
-        self.screen = pygame.display.set_mode((250, 250))
-        pygame.display.set_caption("Jeu d'infiltration")
+        pygame.init()
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption("Jeu de Déplacement par Case")
         self.clock = pygame.time.Clock()
-        self.player = Player([0, 0])
-        self.level = Level(5)
         self.running = True
+        self.level = Level()
+        self.game_over = False
 
     def run(self):
         while self.running:
-            self.clock.tick(60)
-            self.handle_events()
-            self.update()
+            self.clock.tick(FPS)
+            self.handle_events()  # Gestion des événements
+            if not self.game_over:
+                self.update()
             self.draw()
 
     def handle_events(self):
+        # Gestion des événements
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    self.player.move("up")
-                elif event.key == pygame.K_DOWN:
-                    self.player.move("down")
-                elif event.key == pygame.K_LEFT:
-                    self.player.move("left")
-                elif event.key == pygame.K_RIGHT:
-                    self.player.move("right")
+
+            # Déléguer la gestion des touches au joueur
+            self.level.player.handle_keypress(event)
 
     def update(self):
-        pass # Ici si on veut rajouter collision etc
+        self.level.update()
+        if self.level.goal_reached:
+            self.game_over = True
 
     def draw(self):
-        self.screen.fill((0, 0, 0))
-        self.level.draw_grid(self.screen)
-        self.player.draw(self.screen)
-        self.level.draw_target(self.screen)
+        self.screen.fill(BLACK)
+        self.level.draw(self.screen)
+
+        if self.game_over:
+            self.show_victory_message()
+
         pygame.display.flip()
+
+    def show_victory_message(self):
+        font = pygame.font.SysFont(None, 55)
+        text = font.render('Bravo !', True, WHITE)
+        self.screen.blit(text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 30))
+
+    def quit(self):
+        pygame.quit()

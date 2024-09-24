@@ -1,28 +1,45 @@
 import pygame
-import os
+from core.settings import *
 
 class Player:
-    def __init__(self, start_pos):
-        # Charger l'image du joueur
-        self.image = pygame.image.load(os.path.join("assets", "sprites", "test.png")).convert_alpha()
-
-        # Redimensionner l'image pour qu'elle ne dépasse pas la taille de la case
-        self.image = pygame.transform.scale(self.image, (40, 40))  # Taille légèrement inférieure à 50x50
-
-        # Ajuster le rect pour suivre les mouvements du joueur
+    def __init__(self, x, y, level):
+        # Position en termes de cases sur la grille
+        self.grid_x = x
+        self.grid_y = y
+        self.image = pygame.image.load(PLAYER_SPRITE).convert_alpha()
+        self.image = pygame.transform.scale(self.image, (TILE_SIZE, TILE_SIZE))
         self.rect = self.image.get_rect()
-        self.rect.topleft = (start_pos[0] * 50 + 5, start_pos[1] * 50 + 5)  # Centré dans une case de 50x50
+        self.level = level  # Référence au niveau pour vérifier les murs
+        self.update_position()
 
-    def move(self, direction):
-        if direction == "up":
-            self.rect.y -= 50
-        elif direction == "down":
-            self.rect.y += 50
-        elif direction == "left":
-            self.rect.x -= 50
-        elif direction == "right":
-            self.rect.x += 50
+    def update_position(self):
+        # Conversion des coordonnées de la grille en pixels pour l'affichage
+        self.rect.topleft = (self.grid_x * TILE_SIZE, self.grid_y * TILE_SIZE)
+
+    def handle_keypress(self, event):
+        # Sauvegarder la position actuelle
+        new_grid_x = self.grid_x
+        new_grid_y = self.grid_y
+
+        # On vérifie les événements de pression des touches
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_z:  # Haut
+                new_grid_y -= 1
+            if event.key == pygame.K_s:  # Bas
+                new_grid_y += 1
+            if event.key == pygame.K_q:  # Gauche
+                new_grid_x -= 1
+            if event.key == pygame.K_d:  # Droite
+                new_grid_x += 1
+
+        # Vérifier si la nouvelle position est un mur
+        if not self.level.is_wall(new_grid_x, new_grid_y):
+            # Si ce n'est pas un mur, mettre à jour la position
+            self.grid_x = new_grid_x
+            self.grid_y = new_grid_y
+
+        # Mise à jour de la position en pixels pour l'affichage
+        self.update_position()
 
     def draw(self, screen):
-        # Afficher l'image du joueur sur l'écran
         screen.blit(self.image, self.rect)
