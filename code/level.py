@@ -1,10 +1,8 @@
 import pygame
-from enemy import Enemy
 from settings import TILESIZE
 from tile import Tile
 from player import Player
-from support import import_csv_layout, import_folder
-from random import choice
+from support import import_csv_layout
 
 class Level:
     def __init__(self):
@@ -12,82 +10,38 @@ class Level:
         self.visible_sprites = YSortCameraGroup()
         self.obstacle_sprites = pygame.sprite.Group()
 
-        # Import layouts (from CSV files)
-        layouts = {
-            'boundary': import_csv_layout('../map/map_FloorBlocks.csv'),
-            'floor': import_csv_layout('../map/map_Floor.csv'),
-            'grass': import_csv_layout('../map/map_Grass.csv'),
-            'object': import_csv_layout('../map/map_Objects.csv'),
-            'entities': import_csv_layout('../map/map_Entities.csv')
-        }
+        # Import layout from the CSV file (only FloorBlocks)
+        layout = import_csv_layout('../map/map_FloorBlocks.csv')
 
-        # Import graphics
+        # Import graphics for wall and floor
         graphics = {
             'wall': pygame.image.load('../graphics/tilemap/mur.png').convert_alpha(),
-            'water': pygame.image.load('../graphics/tilemap/eau.png').convert_alpha(),
             'floor': pygame.image.load('../graphics/tilemap/sol.png').convert_alpha(),
-            'grass': import_folder('../graphics/Grass'),
-            'objects': import_folder('../graphics/objects')
         }
 
-        # Generate tiles based on layout
-        for style, layout in layouts.items():
-            for row_index, row in enumerate(layout):
-                for col_index, col in enumerate(row):
-                    if col != '-1':  # If the tile is not empty
-                        x = col_index * TILESIZE
-                        y = row_index * TILESIZE
+        # Generate tiles based on layout and find player spawn location
+        player_spawn = None
+        for row_index, row in enumerate(layout):
+            for col_index, col in enumerate(row):
+                x = col_index * TILESIZE
+                y = row_index * TILESIZE
 
-                        # Handle boundary (walls and water)
-                        if style == 'boundary':
-                            if col == '395':  # Water
-                                Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'water', graphics['water'])
-                            elif col == '1':  # Wall
-                                Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', graphics['wall'])
+                # Handle wall (395) and floor (0)
+                if col == '395':  # Wall
+                    Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', graphics['wall'])
+                elif col == '0':  # Floor
+                    Tile((x, y), [self.visible_sprites], 'floor', graphics['floor'])
+                    if not player_spawn:
+                        player_spawn = (x, y)  # Set player spawn at first available floor
 
-                        # Handle floor
-                        elif style == 'floor':
-                            Tile((x, y), [self.visible_sprites], 'floor', graphics['floor'])
+        # If a floor tile is found, place the player there
+        if player_spawn:
+            self.player = Player(player_spawn, [self.visible_sprites], self.obstacle_sprites, self.create_attack, self.destroy_attack, self.create_magic)
+        else:
+            # Fallback if no floor tile was found (default to (100, 100))
+            self.player = Player((100, 100), [self.visible_sprites], self.obstacle_sprites, self.create_attack, self.destroy_attack, self.create_magic)
 
-                        # Handle grass
-                        elif style == 'grass':
-                            random_grass_image = choice(graphics['grass'])
-                            Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'grass', random_grass_image)
-
-                        # Handle objects
-                        elif style == 'object':
-                            surf = graphics['objects'][int(col)]
-                            Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'object', surf)
-
-                        # Handle entities (player and enemies)
-                        elif style == 'entities':
-                            if col == '394':  # Player
-                                self.player = Player(
-                                    (x, y),
-                                    [self.visible_sprites],
-                                    self.obstacle_sprites,
-                                    self.create_attack,
-                                    self.destroy_attack,
-                                    self.create_magic)
-                            else:
-                                # Enemies: based on CSV values
-                                if col == '390':
-                                    monster_name = 'bamboo'
-                                elif col == '391':
-                                    monster_name = 'spirit'
-                                elif col == '392':
-                                    monster_name = 'raccoon'
-                                else:
-                                    monster_name = 'squid'
-                                Enemy(
-                                    monster_name,
-                                    (x, y),
-                                    [self.visible_sprites, self.obstacle_sprites],
-                                    self.obstacle_sprites,
-                                    self.damage_player,
-                                    self.trigger_death_particles,
-                                    self.add_exp)
-
+    # Attack, Magic, Damage, and Experience Logic (unchanged)
     def create_attack(self):
         """Create an attack for the player."""
         print("Player attack created!")
@@ -135,7 +89,7 @@ class YSortCameraGroup(pygame.sprite.Group):
         self.offset.x = player.rect.centerx - self.half_width
         self.offset.y = player.rect.centery - self.half_height
 
-        # Draw floor
+        # Draw floor and walls
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
             offset_pos = sprite.rect.topleft - self.offset
             self.display_surface.blit(sprite.image, offset_pos)

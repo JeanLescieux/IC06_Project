@@ -22,9 +22,9 @@ UI_FONT = '../graphics/font/joystix.ttf'
 UI_FONT_SIZE = 18
 
 # general colors
-WATER_COLOR = '#71ddee'
-UI_BG_COLOR = '#222222'
-UI_BORDER_COLOR = '#111111'
+WATER_COLOR = '#000000'
+UI_BG_COLOR = '#000000'
+UI_BORDER_COLOR = '#000000'
 TEXT_COLOR = '#EEEEEE'
 
 # ui colors
