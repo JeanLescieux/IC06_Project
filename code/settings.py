@@ -2,9 +2,10 @@
 WIDTH    = 1280	
 HEIGTH   = 720
 FPS      = 60
-TILESIZE = 64
+TILESIZE = 16
+ZOOM_FACTOR = 2
 HITBOX_OFFSET = {
-    'player': -26,
+    'player': -6,
     'object': -40,
     'grass': -10,
     'invisible': 0,

@@ -137,17 +137,6 @@ def generate_and_save_csv():
     # Connect rooms with corridors
     connect_rooms(boundary_grid, root)
 
-    # Place the player in a safe spot inside the first room (not near walls)
-    if rooms:
-        # Get room dimensions
-        room_x, room_y, room_width, room_height = rooms[0]
-        
-        # Ensure the player spawns away from walls (offset by 1 tile inside the room)
-        player_x = room_x + 1 + (room_width - 2) // 2  # At least 1 tile from walls
-        player_y = room_y + 1 + (room_height - 2) // 2  # At least 1 tile from walls
-        
-        boundary_grid[player_y][player_x] = FLOOR  # Player starts on a walkable floor tile
-
     # Save CSV files
     save_csv(boundary_grid, '../map/map_FloorBlocks.csv')
     save_csv(floor_grid, '../map/map_Floor.csv')

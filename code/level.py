@@ -1,5 +1,5 @@
 import pygame
-from settings import TILESIZE
+from settings import TILESIZE, ZOOM_FACTOR, WATER_COLOR
 from tile import Tile
 from player import Player
 from support import import_csv_layout
@@ -31,8 +31,18 @@ class Level:
                     Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', graphics['wall'])
                 elif col == '0':  # Floor
                     Tile((x, y), [self.visible_sprites], 'floor', graphics['floor'])
-                    if not player_spawn:
-                        player_spawn = (x, y)  # Set player spawn at first available floor
+                    
+                    # Check if this position is surrounded by floor on all sides
+                    if player_spawn is None:
+                        if (
+                            row_index > 0 and row_index < len(layout) - 1 and
+                            col_index > 0 and col_index < len(row) - 1 and
+                            layout[row_index - 1][col_index] == '0' and  # above
+                            layout[row_index + 1][col_index] == '0' and  # below
+                            layout[row_index][col_index - 1] == '0' and  # left
+                            layout[row_index][col_index + 1] == '0'      # right
+                        ):
+                            player_spawn = (x, y)  # Set player spawn only if surrounded by floor
 
         # If a floor tile is found, place the player there
         if player_spawn:
@@ -76,6 +86,7 @@ class Level:
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
 
+# level.py
 class YSortCameraGroup(pygame.sprite.Group):
     def __init__(self):
         super().__init__()
@@ -84,12 +95,25 @@ class YSortCameraGroup(pygame.sprite.Group):
         self.half_height = self.display_surface.get_size()[1] // 2
         self.offset = pygame.math.Vector2()
 
-    def custom_draw(self, player):
-        # Calculate camera offset based on player position
-        self.offset.x = player.rect.centerx - self.half_width
-        self.offset.y = player.rect.centery - self.half_height
+        # Créer une surface temporaire pour le zoom
+        self.temp_surface = pygame.Surface(
+            (self.display_surface.get_width() // ZOOM_FACTOR, self.display_surface.get_height() // ZOOM_FACTOR)
+        )
 
-        # Draw floor and walls
+    def custom_draw(self, player):
+        # Calculer le décalage de la caméra
+        self.offset.x = player.rect.centerx - self.half_width / ZOOM_FACTOR
+        self.offset.y = player.rect.centery - self.half_height / ZOOM_FACTOR
+
+        # Remplir la surface temporaire avec un fond
+        self.temp_surface.fill(WATER_COLOR)
+
+        # Dessiner tous les sprites sur la surface temporaire
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
             offset_pos = sprite.rect.topleft - self.offset
-            self.display_surface.blit(sprite.image, offset_pos)
+            self.temp_surface.blit(sprite.image, offset_pos)
+
+        # Redimensionner la surface temporaire avec le zoom pour l'afficher
+        zoomed_surface = pygame.transform.scale(self.temp_surface, self.display_surface.get_size())
+        self.display_surface.blit(zoomed_surface, (0, 0))
+
