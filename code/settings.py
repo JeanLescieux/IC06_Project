@@ -3,7 +3,7 @@ WIDTH    = 1280
 HEIGTH   = 720
 FPS      = 60
 TILESIZE = 16
-ZOOM_FACTOR = 2
+ZOOM_FACTOR = 5
 HITBOX_OFFSET = {
     'player': -6,
     'object': -40,
