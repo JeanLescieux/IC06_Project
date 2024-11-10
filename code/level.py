@@ -42,10 +42,13 @@ class Level:
                             layout[row_index][col_index - 1] == '0' and  # left
                             layout[row_index][col_index + 1] == '0'      # right
                         ):
-                            player_spawn = (x, y)  # Set player spawn only if surrounded by floor
+                            player_spawn = (x, y)
+                            print(f"Initial Player Spawn Position: {player_spawn}")
+
 
         # If a floor tile is found, place the player there
         if player_spawn:
+            print("Player spawn at:", player_spawn)  # Ligne de débogage
             self.player = Player(player_spawn, [self.visible_sprites], self.obstacle_sprites, self.create_attack, self.destroy_attack, self.create_magic)
         else:
             # Fallback if no floor tile was found (default to (100, 100))

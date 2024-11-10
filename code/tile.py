@@ -6,6 +6,7 @@ class Tile(pygame.sprite.Sprite):
         super().__init__(groups)
         self.sprite_type = sprite_type
 
+        # Charge l'image en fonction du type de sprite
         if surface:
             self.image = surface
         else:
@@ -18,6 +19,11 @@ class Tile(pygame.sprite.Sprite):
             else:
                 raise ValueError(f"Unknown sprite_type '{sprite_type}' provided for tile.")
 
+        # Redimensionner l'image pour correspondre au TILESIZE
+        self.image = pygame.transform.scale(self.image, (TILESIZE, TILESIZE))
+        
+        # Ajuste la position et la hitbox en fonction du TILESIZE
         self.rect = self.image.get_rect(topleft=pos)
-        y_offset = HITBOX_OFFSET[sprite_type]
+        y_offset = HITBOX_OFFSET.get(sprite_type, 0)  # Utilise l'offset du sprite ou 0 par défaut
         self.hitbox = self.rect.inflate(0, y_offset)
+
