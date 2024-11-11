@@ -2,12 +2,17 @@
 WIDTH    = 1280	
 HEIGTH   = 720
 FPS      = 60
-TILESIZE = 64
+TILESIZE = 16
+ZOOM_FACTOR = 5
 HITBOX_OFFSET = {
-	'player': -26,
-	'object': -40,
-	'grass': -10,
-	'invisible': 0}
+    'player': -6,
+    'object': -40,
+    'grass': -10,
+    'invisible': 0,
+    'wall': 0,       # Ajout pour les murs
+    'water': 0,      # Ajout pour l'eau
+    'floor': 0       # Ajout pour le sol marchable
+}
 
 # ui 
 BAR_HEIGHT = 20
@@ -18,9 +23,9 @@ UI_FONT = '../graphics/font/joystix.ttf'
 UI_FONT_SIZE = 18
 
 # general colors
-WATER_COLOR = '#71ddee'
-UI_BG_COLOR = '#222222'
-UI_BORDER_COLOR = '#111111'
+WATER_COLOR = '#000000'
+UI_BG_COLOR = '#000000'
+UI_BORDER_COLOR = '#000000'
 TEXT_COLOR = '#EEEEEE'
 
 # ui colors
