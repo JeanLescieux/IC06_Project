@@ -24,80 +24,76 @@ class Level:
             'barrel': pygame.image.load('../graphics/donjon/Barrel.png').convert_alpha(),
         }
 
-       # List to keep track of middle wall positions for placing top walls later
+       # Liste pour stocker les positions des murs du milieu pour placer les murs du haut plus tard
         self.middle_wall_positions = []
 
-        # First pass: Place middle walls, side walls, bottom walls, and corner walls
+        # Première passe : Placement des murs (middle, side, bottom, corner)
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
                 x = col_index * TILESIZE
                 y = row_index * TILESIZE
 
-                if col == '395':  # Wall tile
-                    # Middle Wall - has a walkable tile below
+                if col == '395':  # Case murale
+                    # Mur du milieu - a une case walkable en dessous
                     if row_index < len(layout) - 1 and layout[row_index + 1][col_index] == '0':
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['middle_wall'])
-                        self.middle_wall_positions.append((x, y))  # Store position for top wall placement
+                        self.middle_wall_positions.append((x, y))  # Stocker la position pour le placement des murs du haut
 
-                    # Side Wall - adjacent to a walkable tile on either side
+                    # Mur latéral - adjacent à une case walkable de chaque côté
                     elif (col_index > 0 and layout[row_index][col_index - 1] == '0') or \
                          (col_index < len(row) - 1 and layout[row_index][col_index + 1] == '0'):
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['side_wall'])
 
-                    # Bottom Wall - has a walkable tile above
+                    # Mur du bas - a une case walkable au-dessus
                     elif row_index > 0 and layout[row_index - 1][col_index] == '0':
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['bottom_wall'])
 
-                    # Corner Wall - in a corner configuration with walkable tile in diagonal
+                    # Coin - configuration en coin avec une case walkable en diagonale
                     elif self.is_corner_wall(layout, row_index, col_index):
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['corner_wall'])
 
-                elif col == '0':  # Floor tile
-                    Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
-
-        # Second pass: Place top walls above each recorded middle wall position
-        for middle_x, middle_y in self.middle_wall_positions:
-            Tile((middle_x, middle_y - TILESIZE), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['top_wall'])
-
-        # Third pass: Ensure all walkable areas have a floor tile
+        # Deuxième passe : Placement des top walls et des tonneaux
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
                 x = col_index * TILESIZE
                 y = row_index * TILESIZE
 
-                # Check if the tile is walkable ('0') and does not already have a floor sprite
-                if col == '0':
-                    # Check if there's already a floor tile at this position
-                    if not any(sprite.rect.topleft == (x, y) and sprite.image == self.graphics['floor'] for sprite in self.visible_sprites):
-                        Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
+                # Placement des murs du haut au-dessus de chaque mur du milieu enregistré
+                if (x, y) in self.middle_wall_positions:
+                    Tile((x, y - TILESIZE), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['top_wall'])
 
-        # Fourth pass: Place barrels based on the specified conditions
-        for row_index, row in enumerate(layout):
-            for col_index, col in enumerate(row):
-                x = col_index * TILESIZE
-                y = row_index * TILESIZE
-
-                # Barrel conditions
-                if col == '395':  # Wall tile
-                    above = row_index > 0 and layout[row_index - 1][col_index] == '0'
-                    below = row_index < len(layout) - 1 and layout[row_index + 1][col_index] == '0'
-                    left = col_index > 0 and layout[row_index][col_index - 1] == '0'
-                    right = col_index < len(row) - 1 and layout[row_index][col_index + 1] == '0'
-
-                    # Place barrel if it has walkable tiles above and below or on both sides
-                    if (above and below) or (left and right):
+                # Conditions pour placer un tonneau
+                if col == '395':  # Case murale
+                    walkable_neighbors = self.count_walkable_neighbors(layout, row_index, col_index)
+                    # Placer un tonneau si la case murale a 3 voisins ou plus walkable
+                    if walkable_neighbors >= 3:
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'barrel', self.graphics['barrel'])
 
-        # Set player spawn position
+        # Troisième passe : Assurer que toutes les zones walkable ont un sprite de sol
+        for row_index, row in enumerate(layout):
+            for col_index, col in enumerate(row):
+                x = col_index * TILESIZE
+                y = row_index * TILESIZE
+
+                # Remplace tout sur les cases `0` par un sol (floor)
+                if col == '0':
+                    # Supprime les sprites existants à cette position
+                    for sprite in self.visible_sprites:
+                        if sprite.rect.topleft == (x, y):
+                            sprite.kill()
+                    # Ajoute le sol
+                    Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
+
+        # Position de spawn du joueur
         player_spawn = self.find_player_spawn(layout)
         if player_spawn:
             self.player = Player(player_spawn, [self.visible_sprites], self.obstacle_sprites, self.create_attack, self.destroy_attack, self.create_magic)
         else:
-            # Default spawn position if none is found
+            # Position par défaut si aucune position de spawn trouvée
             self.player = Player((100, 100), [self.visible_sprites], self.obstacle_sprites, self.create_attack, self.destroy_attack, self.create_magic)
 
     def is_corner_wall(self, layout, row, col):
-        """ Determines if a wall is in a corner configuration. """
+        """ Détermine si une case murale est dans une configuration en coin. """
         if row > 0 and col > 0 and layout[row - 1][col] == '395' and layout[row][col - 1] == '395' and layout[row - 1][col - 1] == '0':
             return True
         elif row > 0 and col < len(layout[0]) - 1 and layout[row - 1][col] == '395' and layout[row][col + 1] == '395' and layout[row - 1][col + 1] == '0':
@@ -108,8 +104,25 @@ class Level:
             return True
         return False
 
+    def count_walkable_neighbors(self, layout, row, col):
+        """Compte le nombre de voisins walkable autour d'une case murale."""
+        neighbors = 0
+        # Haut
+        if row > 0 and layout[row - 1][col] == '0':
+            neighbors += 1
+        # Bas
+        if row < len(layout) - 1 and layout[row + 1][col] == '0':
+            neighbors += 1
+        # Gauche
+        if col > 0 and layout[row][col - 1] == '0':
+            neighbors += 1
+        # Droite
+        if col < len(layout[0]) - 1 and layout[row][col + 1] == '0':
+            neighbors += 1
+        return neighbors
+
     def find_player_spawn(self, layout):
-        """Find a position in the layout surrounded by floor tiles."""
+        """Trouve une position de spawn entourée de cases de sol."""
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
                 if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
@@ -119,30 +132,30 @@ class Level:
         return None
 
     def is_surrounded_by_floor(self, layout, row, col):
-        """Check if a tile is surrounded by floor tiles (0) on all sides."""
+        """Vérifie si une case est entourée de cases de sol (0) de tous les côtés."""
         if (
             row > 0 and row < len(layout) - 1 and
             col > 0 and col < len(layout[0]) - 1 and
-            layout[row - 1][col] == '0' and  # above
-            layout[row + 1][col] == '0' and  # below
-            layout[row][col - 1] == '0' and  # left
-            layout[row][col + 1] == '0'      # right
+            layout[row - 1][col] == '0' and  # au-dessus
+            layout[row + 1][col] == '0' and  # en-dessous
+            layout[row][col - 1] == '0' and  # à gauche
+            layout[row][col + 1] == '0'      # à droite
         ):
             return True
         return False
 
-    # Additional functions related to player actions
+    # Fonctions supplémentaires liées aux actions du joueur
     def create_attack(self):
-        print("Player attack created!")
+        print("Attaque du joueur créée !")
 
     def destroy_attack(self):
-        print("Player attack destroyed!")
+        print("Attaque du joueur détruite !")
 
     def create_magic(self, style, strength, cost):
-        print(f"Magic {style} created with strength {strength} and cost {cost}.")
+        print(f"Magie {style} créée avec force {strength} et coût {cost}.")
 
     def run(self):
-        """Run the game level (update and draw)."""
+        """Exécute le niveau (mise à jour et dessin)."""
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
 
