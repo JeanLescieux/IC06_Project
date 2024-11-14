@@ -146,7 +146,6 @@ class Level:
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
 
-# Camera class for displaying the level with zoom
 class YSortCameraGroup(pygame.sprite.Group):
     def __init__(self):
         super().__init__()
@@ -155,24 +154,31 @@ class YSortCameraGroup(pygame.sprite.Group):
         self.half_height = self.display_surface.get_size()[1] // 2
         self.offset = pygame.math.Vector2()
 
-        # Temporary surface for zoomed display
+        # Surface temporaire pour le zoom
         self.temp_surface = pygame.Surface(
             (self.display_surface.get_width() // ZOOM_FACTOR, self.display_surface.get_height() // ZOOM_FACTOR)
         )
 
     def custom_draw(self, player):
-        # Calculate camera offset
+        # Calcul de l'offset de la caméra
         self.offset.x = player.rect.centerx - self.half_width / ZOOM_FACTOR
         self.offset.y = player.rect.centery - self.half_height / ZOOM_FACTOR
 
-        # Fill temporary surface with background color
+        # Remplissage du fond
         self.temp_surface.fill(WATER_COLOR)
 
-        # Draw each sprite in the sorted order
+        # Première passe : Dessiner toutes les tuiles de sol en premier
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
-            offset_pos = sprite.rect.topleft - self.offset
-            self.temp_surface.blit(sprite.image, offset_pos)
+            if getattr(sprite, 'sprite_type', None) == 'floor':
+                offset_pos = sprite.rect.topleft - self.offset
+                self.temp_surface.blit(sprite.image, offset_pos)
 
-        # Scale the temporary surface to display size
+        # Deuxième passe : Dessiner les autres éléments (joueur, murs, etc.)
+        for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
+            if getattr(sprite, 'sprite_type', None) != 'floor':
+                offset_pos = sprite.rect.topleft - self.offset
+                self.temp_surface.blit(sprite.image, offset_pos)
+
+        # Mise à l'échelle pour l'affichage
         zoomed_surface = pygame.transform.scale(self.temp_surface, self.display_surface.get_size())
         self.display_surface.blit(zoomed_surface, (0, 0))
