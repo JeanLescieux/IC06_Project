@@ -23,6 +23,9 @@ class Level:
             'floor': pygame.image.load('../graphics/donjon/floor.png').convert_alpha(),
         }
 
+        # List to keep track of middle wall positions for placing top walls later
+        self.middle_wall_positions = []
+
         # First pass: Place middle walls, side walls, bottom walls, and corner walls
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
@@ -33,6 +36,7 @@ class Level:
                     # Middle Wall - has a walkable tile below
                     if row_index < len(layout) - 1 and layout[row_index + 1][col_index] == '0':
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['middle_wall'])
+                        self.middle_wall_positions.append((x, y))  # Store position for top wall placement
 
                     # Side Wall - adjacent to a walkable tile on either side
                     elif (col_index > 0 and layout[row_index][col_index - 1] == '0') or \
@@ -50,16 +54,9 @@ class Level:
                 elif col == '0':  # Floor tile
                     Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
 
-        # Second pass: Place top walls above each middle wall
-        for row_index, row in enumerate(layout):
-            for col_index, col in enumerate(row):
-                x = col_index * TILESIZE
-                y = row_index * TILESIZE
-
-                # Check if this tile should have a top wall (if it's a middle wall below)
-                if row_index > 0 and layout[row_index][col_index] == '395' and \
-                   self.has_middle_wall_below(self.visible_sprites, (x, y)):
-                    Tile((x, y - TILESIZE), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['top_wall'])
+        # Second pass: Place top walls above each recorded middle wall position
+        for middle_x, middle_y in self.middle_wall_positions:
+            Tile((middle_x, middle_y - TILESIZE), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['top_wall'])
 
         # Set player spawn position
         player_spawn = self.find_player_spawn(layout)
@@ -79,13 +76,6 @@ class Level:
             return True
         elif row < len(layout) - 1 and col < len(layout[0]) - 1 and layout[row + 1][col] == '395' and layout[row][col + 1] == '395' and layout[row + 1][col + 1] == '0':
             return True
-        return False
-
-    def has_middle_wall_below(self, sprite_group, pos):
-        """Check if there is a middle wall directly below the given position."""
-        for sprite in sprite_group:
-            if sprite.rect.topleft == pos and sprite.sprite_type == 'wall' and sprite.image == self.graphics['middle_wall']:
-                return True
         return False
 
     def find_player_spawn(self, layout):
