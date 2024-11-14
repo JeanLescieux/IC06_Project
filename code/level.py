@@ -21,9 +21,10 @@ class Level:
             'corner_wall': pygame.image.load('../graphics/donjon/corner.png').convert_alpha(),
             'bottom_wall': pygame.image.load('../graphics/donjon/downTile.png').convert_alpha(),
             'floor': pygame.image.load('../graphics/donjon/floor.png').convert_alpha(),
+            'barrel': pygame.image.load('../graphics/donjon/Barrel.png').convert_alpha(),
         }
 
-        # List to keep track of middle wall positions for placing top walls later
+       # List to keep track of middle wall positions for placing top walls later
         self.middle_wall_positions = []
 
         # First pass: Place middle walls, side walls, bottom walls, and corner walls
@@ -57,6 +58,35 @@ class Level:
         # Second pass: Place top walls above each recorded middle wall position
         for middle_x, middle_y in self.middle_wall_positions:
             Tile((middle_x, middle_y - TILESIZE), [self.visible_sprites, self.obstacle_sprites], 'wall', self.graphics['top_wall'])
+
+        # Third pass: Ensure all walkable areas have a floor tile
+        for row_index, row in enumerate(layout):
+            for col_index, col in enumerate(row):
+                x = col_index * TILESIZE
+                y = row_index * TILESIZE
+
+                # Check if the tile is walkable ('0') and does not already have a floor sprite
+                if col == '0':
+                    # Check if there's already a floor tile at this position
+                    if not any(sprite.rect.topleft == (x, y) and sprite.image == self.graphics['floor'] for sprite in self.visible_sprites):
+                        Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
+
+        # Fourth pass: Place barrels based on the specified conditions
+        for row_index, row in enumerate(layout):
+            for col_index, col in enumerate(row):
+                x = col_index * TILESIZE
+                y = row_index * TILESIZE
+
+                # Barrel conditions
+                if col == '395':  # Wall tile
+                    above = row_index > 0 and layout[row_index - 1][col_index] == '0'
+                    below = row_index < len(layout) - 1 and layout[row_index + 1][col_index] == '0'
+                    left = col_index > 0 and layout[row_index][col_index - 1] == '0'
+                    right = col_index < len(row) - 1 and layout[row_index][col_index + 1] == '0'
+
+                    # Place barrel if it has walkable tiles above and below or on both sides
+                    if (above and below) or (left and right):
+                        Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'barrel', self.graphics['barrel'])
 
         # Set player spawn position
         player_spawn = self.find_player_spawn(layout)
