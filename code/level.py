@@ -2,6 +2,7 @@ import pygame
 from settings import TILESIZE, ZOOM_FACTOR, WATER_COLOR
 from tile import Tile
 from player import Player
+from enemy import Enemy
 from support import import_csv_layout
 
 class Level:
@@ -87,10 +88,10 @@ class Level:
         # Position de spawn du joueur
         player_spawn = self.find_player_spawn(layout)
         if player_spawn:
-            self.player = Player(player_spawn, [self.visible_sprites], self.obstacle_sprites, self.create_attack, self.destroy_attack, self.create_magic)
+            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites)
         else:
             # Position par défaut si aucune position de spawn trouvée
-            self.player = Player((100, 100), [self.visible_sprites], self.obstacle_sprites, self.create_attack, self.destroy_attack, self.create_magic)
+            self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites)
 
     def is_corner_wall(self, layout, row, col):
         """ Détermine si une case murale est dans une configuration en coin. """
@@ -159,6 +160,8 @@ class Level:
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
 
+
+
 class YSortCameraGroup(pygame.sprite.Group):
     def __init__(self):
         super().__init__()
@@ -166,32 +169,37 @@ class YSortCameraGroup(pygame.sprite.Group):
         self.half_width = self.display_surface.get_size()[0] // 2
         self.half_height = self.display_surface.get_size()[1] // 2
         self.offset = pygame.math.Vector2()
-
-        # Surface temporaire pour le zoom
         self.temp_surface = pygame.Surface(
             (self.display_surface.get_width() // ZOOM_FACTOR, self.display_surface.get_height() // ZOOM_FACTOR)
         )
 
     def custom_draw(self, player):
-        # Calcul de l'offset de la caméra
-        self.offset.x = player.rect.centerx - self.half_width / ZOOM_FACTOR
-        self.offset.y = player.rect.centery - self.half_height / ZOOM_FACTOR
-
-        # Remplissage du fond
-        self.temp_surface.fill(WATER_COLOR)
-
-        # Première passe : Dessiner toutes les tuiles de sol en premier
+        # Getting the offset 
+        self.offset.x = player.rect.centerx - self.half_width
+        self.offset.y = player.rect.centery - self.half_height
+        
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
             if getattr(sprite, 'sprite_type', None) == 'floor':
                 offset_pos = sprite.rect.topleft - self.offset
-                self.temp_surface.blit(sprite.image, offset_pos)
-
-        # Deuxième passe : Dessiner les autres éléments (joueur, murs, etc.)
+                self.display_surface.blit(sprite.image, offset_pos)
+        
+		
+		# Deuxième passe : Dessiner les autres éléments (joueur, murs, etc.)
+        
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
             if getattr(sprite, 'sprite_type', None) != 'floor':
                 offset_pos = sprite.rect.topleft - self.offset
-                self.temp_surface.blit(sprite.image, offset_pos)
+                self.display_surface.blit(sprite.image, offset_pos)
+		
+        # Dessiner les sprites avec le décalage
+        for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
+            if isinstance(sprite, Enemy):
+                sprite.display_weapon(self.display_surface, self.offset)
+        
+        # Afficher l'arme du joueur en appliquant le même décalage
+        player.draw_weapon(self.display_surface, self.offset)
+        
+        # Dessiner le bouclier du joueur avec le décalage
+        player.draw_shield(self.display_surface, self.offset)
+        
 
-        # Mise à l'échelle pour l'affichage
-        zoomed_surface = pygame.transform.scale(self.temp_surface, self.display_surface.get_size())
-        self.display_surface.blit(zoomed_surface, (0, 0))

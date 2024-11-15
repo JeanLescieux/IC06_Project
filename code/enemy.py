@@ -1,155 +1,205 @@
 import pygame
+import random
 from settings import *
-from entity import Entity
-from support import *
+from debug import debug
+from tile import Tile
 
-class Enemy(Entity):
-	def __init__(self,monster_name,pos,groups,obstacle_sprites,damage_player,trigger_death_particles,add_exp):
+# Variable globale alert (à définir dans votre script principal)
 
-		# general setup
-		super().__init__(groups)
-		self.sprite_type = 'enemy'
 
-		# graphics setup
-		self.import_graphics(monster_name)
-		self.status = 'idle'
-		self.image = self.animations[self.status][self.frame_index]
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, pos, groups, obstacle_sprites, player):
+        super().__init__(groups)
+        self.original_image = pygame.image.load('../graphics/test/squid.png').convert_alpha()
+        self.image = self.original_image
+        self.rect = self.image.get_rect(topleft=pos)
+        self.hitbox = self.rect.inflate(0, -10)
+        self.health = 20
 
-		# movement
-		self.rect = self.image.get_rect(topleft = pos)
-		self.hitbox = self.rect.inflate(0,-10)
-		self.obstacle_sprites = obstacle_sprites
+        self.direction = pygame.math.Vector2(0, -1)
+        self.speed = 3
+        self.attack_cooldown = 500
+        self.last_attack_time = 0
+        self.obstacle_sprites = obstacle_sprites
+        self.player = player
 
-		# stats
-		self.monster_name = monster_name
-		monster_info = monster_data[self.monster_name]
-		self.health = monster_info['health']
-		self.exp = monster_info['exp']
-		self.speed = monster_info['speed']
-		self.attack_damage = monster_info['damage']
-		self.resistance = monster_info['resistance']
-		self.attack_radius = monster_info['attack_radius']
-		self.notice_radius = monster_info['notice_radius']
-		self.attack_type = monster_info['attack_type']
+        self.change_direction_timer = 0
+        self.change_interval = 1000  # Temps entre chaque changement de direction (en ms)
+        self.pause_time = 1000  # Pause de 1 seconde entre les changements de direction
+        self.last_direction_change_time = 0  # Temps du dernier changement de direction
+        self.attack_radius = 100
+        self.vision_radius = 750
 
-		# player interaction
-		self.can_attack = True
-		self.attack_time = None
-		self.attack_cooldown = 400
-		self.damage_player = damage_player
-		self.trigger_death_particles = trigger_death_particles
-		self.add_exp = add_exp
+        self.large_vision_radius = 1000  # Plus grand que le champ de vision normal
+        self.large_vision_angle = 200
 
-		# invincibility timer
-		self.vulnerable = True
-		self.hit_time = None
-		self.invincibility_duration = 300
+        self.attack_damage = 10
+        self.vision_angle = 90  # Angle de vision en degrés
 
-		# sounds
-		self.death_sound = pygame.mixer.Sound('../audio/death.wav')
-		self.hit_sound = pygame.mixer.Sound('../audio/hit.wav')
-		self.attack_sound = pygame.mixer.Sound(monster_info['attack_sound'])
-		self.death_sound.set_volume(0.6)
-		self.hit_sound.set_volume(0.6)
-		self.attack_sound.set_volume(0.6)
+        self.weapon_image = pygame.image.load('../graphics/test/attack.png').convert_alpha()
+        self.weapon_rect = self.weapon_image.get_rect()
+        self.weapon_visible = False
+        self.weapon_display_duration = 200
+        self.weapon_display_start = 0
+        self.chasing_player = False
+        self.alert = False
 
-	def import_graphics(self,name):
-		self.animations = {'idle':[],'move':[],'attack':[]}
-		main_path = f'../graphics/monsters/{name}/'
-		for animation in self.animations.keys():
-			self.animations[animation] = import_folder(main_path + animation)
+        # Temps depuis la détection du joueur
+        self.detection_time = None
 
-	def get_player_distance_direction(self,player):
-		enemy_vec = pygame.math.Vector2(self.rect.center)
-		player_vec = pygame.math.Vector2(player.rect.center)
-		distance = (player_vec - enemy_vec).magnitude()
 
-		if distance > 0:
-			direction = (player_vec - enemy_vec).normalize()
-		else:
-			direction = pygame.math.Vector2()
+    def display_weapon(self, screen, offset):
+        """ Affiche l'image de l'arme temporairement si l'ennemi attaque. """
+        current_time = pygame.time.get_ticks()
+        if self.weapon_visible:
+            if current_time - self.weapon_display_start > self.weapon_display_duration:
+                self.weapon_visible = False
+            else:
+                offset_pos = self.rect.center + (self.direction * self.attack_radius) - offset
+                screen.blit(self.weapon_image, offset_pos)
 
-		return (distance,direction)
+    def get_random_direction(self):
+        directions = [
+            pygame.math.Vector2(1, 0),
+            pygame.math.Vector2(-1, 0),
+            pygame.math.Vector2(0, 1),
+            pygame.math.Vector2(0, -1),
+        ]
+        self.direction = random.choice(directions)
 
-	def get_status(self, player):
-		distance = self.get_player_distance_direction(player)[0]
+    def update_orientation(self):
+        if self.direction.magnitude() != 0:
+            angle = self.direction.angle_to(pygame.math.Vector2(0, -1))
+            self.image = pygame.transform.rotate(self.original_image, angle)
+            self.rect = self.image.get_rect(center=self.rect.center)
+    
+    def is_player_in_line_of_sight(self, player_center, large=False):
+        """ Vérifie si le joueur est dans le champ de vision. 
+            Le paramètre `large` permet d'utiliser le champ de vision élargi.
+        """
+        max_distance = self.large_vision_radius if large else self.vision_radius
+        angle_of_view = self.large_vision_angle if large else self.vision_angle
 
-		if distance <= self.attack_radius and self.can_attack:
-			if self.status != 'attack':
-				self.frame_index = 0
-			self.status = 'attack'
-		elif distance <= self.notice_radius:
-			self.status = 'move'
-		else:
-			self.status = 'idle'
+        # Reste du code pour le champ de vision (comme avant)
+        direction_vector = pygame.math.Vector2(player_center) - pygame.math.Vector2(self.rect.center)
+        distance_to_player = direction_vector.length()
 
-	def actions(self,player):
-		if self.status == 'attack':
-			self.attack_time = pygame.time.get_ticks()
-			self.damage_player(self.attack_damage,self.attack_type)
-			self.attack_sound.play()
-		elif self.status == 'move':
-			self.direction = self.get_player_distance_direction(player)[1]
-		else:
-			self.direction = pygame.math.Vector2()
+        if distance_to_player > max_distance or self.direction.length() == 0:
+            return False
 
-	def animate(self):
-		animation = self.animations[self.status]
-		
-		self.frame_index += self.animation_speed
-		if self.frame_index >= len(animation):
-			if self.status == 'attack':
-				self.can_attack = False
-			self.frame_index = 0
+        enemy_direction = self.direction.normalize()
+        angle_to_player = enemy_direction.angle_to(direction_vector.normalize())
 
-		self.image = animation[int(self.frame_index)]
-		self.rect = self.image.get_rect(center = self.hitbox.center)
+        if abs(angle_to_player) > angle_of_view / 2:
+            return False
 
-		if not self.vulnerable:
-			alpha = self.wave_value()
-			self.image.set_alpha(alpha)
-		else:
-			self.image.set_alpha(255)
+        # Vérification des obstacles entre l'ennemi et le joueur (comme avant)
+        for sprite in self.obstacle_sprites:
+            if isinstance(sprite, Tile) and sprite.hitbox.clipline(self.rect.center, player_center):
+                return False
 
-	def cooldowns(self):
-		current_time = pygame.time.get_ticks()
-		if not self.can_attack:
-			if current_time - self.attack_time >= self.attack_cooldown:
-				self.can_attack = True
+        return True
 
-		if not self.vulnerable:
-			if current_time - self.hit_time >= self.invincibility_duration:
-				self.vulnerable = True
+    def move(self):
+        # 1. Vérification de la direction actuelle pour éviter un déplacement constant vers le haut
+        if self.direction.magnitude() != 0:
+            self.last_non_zero_direction = self.direction.normalize()
+        elif self.chasing_player:
+            # Maintenir la dernière direction de poursuite si l'ennemi est en mode poursuite
+            self.direction = self.last_non_zero_direction
+        else:
+            # Si aucune direction n'est définie, rester immobile
+            self.direction = pygame.math.Vector2(0, 0)
 
-	def get_damage(self,player,attack_type):
-		if self.vulnerable:
-			self.hit_sound.play()
-			self.direction = self.get_player_distance_direction(player)[1]
-			if attack_type == 'weapon':
-				self.health -= player.get_full_weapon_damage()
-			else:
-				self.health -= player.get_full_magic_damage()
-			self.hit_time = pygame.time.get_ticks()
-			self.vulnerable = False
+        player_center = pygame.math.Vector2(self.player.rect.center)
+        enemy_center = pygame.math.Vector2(self.rect.center)
+        distance = player_center.distance_to(enemy_center)
 
-	def check_death(self):
-		if self.health <= 0:
-			self.kill()
-			self.trigger_death_particles(self.rect.center,self.monster_name)
-			self.add_exp(self.exp)
-			self.death_sound.play()
+        # 2. Détection du joueur dans le champ de vision
+        if distance <= self.vision_radius and self.is_player_in_line_of_sight(player_center):
+            self.chasing_player = True
+            if self.detection_time is None:
+                self.detection_time = pygame.time.get_ticks()
 
-	def hit_reaction(self):
-		if not self.vulnerable:
-			self.direction *= -self.resistance
+        # 3. Arrêt de la poursuite si le joueur sort du champ de vision large
+        elif self.chasing_player and not self.is_player_in_line_of_sight(player_center, large=True):
+            self.chasing_player = False
+            self.detection_time = None
 
-	def update(self):
-		self.hit_reaction()
-		self.move(self.speed)
-		self.animate()
-		self.cooldowns()
-		self.check_death()
+        # 4. Comportement de poursuite si le joueur est détecté
+        if self.chasing_player:
+            # Mise à jour de la direction vers le joueur
+            self.direction = (player_center - enemy_center).normalize()
+            debug('En Poursuite!', y=60, x=10)
 
-	def enemy_update(self,player):
-		self.get_status(player)
-		self.actions(player)
+            # Vérifier si le joueur est en alerte après 2 secondes de poursuite
+            if pygame.time.get_ticks() - self.detection_time >= 2000 and not self.alert:
+                self.player.alert += 1
+                self.alert = True
+        else:
+            # 5. Comportement de patrouille aléatoire si le joueur n'est pas poursuivi
+            current_time = pygame.time.get_ticks()
+            if current_time - self.last_direction_change_time >= self.pause_time:
+                if self.direction == pygame.math.Vector2(0, 0):
+                    self.get_random_direction()  # Changer vers une direction aléatoire
+                    self.last_direction_change_time = current_time
+                    self.pause_time = 2000  # Temps entre deux changements de direction
+                else:
+                    self.direction = pygame.math.Vector2(0, 0)  # Pause aléatoire
+                    self.last_direction_change_time = current_time
+                    self.pause_time = 1000  # Durée de la pause
+
+        # 6. Normaliser la direction avant d'appliquer le déplacement
+        if self.direction.magnitude() != 0:
+            self.direction = self.direction.normalize()
+
+        # 7. Calcul du facteur de vitesse en fonction de l'alerte du joueur
+        alert_bonus = self.player.alert  # Multiplier par un facteur (ajuster selon la rapidité désirée)
+
+        # 8. Appliquer le bonus d'alerte en fonction de la direction de l'ennemi
+        self.hitbox.x += (self.direction.x * self.speed + alert_bonus * self.direction.x)
+        if self.check_collision('horizontal'):
+            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus * self.direction.x)
+
+        self.hitbox.y += (self.direction.y * self.speed + alert_bonus * self.direction.y)
+        if self.check_collision('vertical'):
+            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus * self.direction.y)
+
+        # Mise à jour de la position réelle
+        self.rect.center = self.hitbox.center
+
+        # Affichage de la santé de l'ennemi pour le debug
+        debug(f'Enemy Health: {self.health}', y=40, x=10)
+
+
+        
+    def check_collision(self, direction):
+        for sprite in self.obstacle_sprites:
+            if sprite.hitbox.colliderect(self.hitbox) and sprite != self:
+                return True
+        return False
+
+    def attack(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_attack_time >= self.attack_cooldown:
+            self.last_attack_time = current_time
+            player_center = pygame.math.Vector2(self.player.rect.center)
+            enemy_center = pygame.math.Vector2(self.rect.center)
+
+            distance = player_center.distance_to(enemy_center)
+            direction_to_player = (player_center - enemy_center).normalize()
+            if distance <= self.attack_radius and self.direction.dot(direction_to_player) > 0.7:
+                self.weapon_visible = True
+                self.weapon_display_start = current_time
+                self.player.health -= self.attack_damage
+                debug(f'Player Health: {self.player.health}', y=10, x=10)
+
+    def receive_damage(self, damage):
+        self.health = max(self.health - damage, 0)
+        if self.health <= 0:
+            self.kill()
+
+    def update(self, screen):
+        self.move()
+        self.update_orientation()
+        self.attack()
