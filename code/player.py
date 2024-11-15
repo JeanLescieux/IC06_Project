@@ -3,7 +3,7 @@ from settings import *
 from debug import debug
 from enemy import Enemy
 
-ATTACK_RADIUS = 100  # Rayon d'attaque en pixels
+ATTACK_RADIUS = 25  # Rayon d'attaque en pixels
 WEAPON_DISPLAY_TIME = 200  # Durée d'affichage de l'image de l'arme en millisecondes
 SHIELD_DURATION = 3000  # Durée du bouclier en millisecondes
 
@@ -20,14 +20,14 @@ class Player(pygame.sprite.Sprite):
         self.attack_cooldown = 500
         self.last_attack_time = 0
         self.direction = pygame.math.Vector2(0, -1)
-        self.speed = 5
+        self.speed = 2
         self.space_held = False
         self.alert = 0
 
         self.obstacle_sprites = obstacle_sprites
 
         # Image et position de l'arme
-        self.weapon_image = pygame.image.load('../graphics/test/attack.png').convert_alpha()
+        self.weapon_image = pygame.transform.scale(pygame.image.load('../graphics/test/attack.png').convert_alpha(), (16, 16))
         self.weapon_rect = self.weapon_image.get_rect()
         self.weapon_visible = False
         self.weapon_display_time = 0

@@ -1,3 +1,3 @@
 # IC06_Project
 
-Hello.
+migong nu wo

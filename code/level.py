@@ -1,3 +1,4 @@
+import random
 import pygame
 from settings import TILESIZE, ZOOM_FACTOR, WATER_COLOR
 from tile import Tile
@@ -89,9 +90,11 @@ class Level:
         player_spawn = self.find_player_spawn(layout)
         if player_spawn:
             self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites)
+            self.spawn_enemies(layout, num_enemies=5)
         else:
             # Position par défaut si aucune position de spawn trouvée
             self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites)
+            self.spawn_enemies(layout, num_enemies=5)
 
     def is_corner_wall(self, layout, row, col):
         """ Détermine si une case murale est dans une configuration en coin. """
@@ -131,6 +134,27 @@ class Level:
                     y = row_index * TILESIZE
                     return (x, y)
         return None
+    
+    # Dans la classe Level, ajoutez cette méthode
+    def spawn_enemies(self, layout, num_enemies=5):
+        """Fait apparaître un certain nombre d'ennemis sur des cases marchables."""
+        walkable_positions = []
+
+        # Parcourir le layout pour trouver toutes les cases marchables
+        for row_index, row in enumerate(layout):
+            for col_index, col in enumerate(row):
+                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
+                    x = col_index * TILESIZE
+                    y = row_index * TILESIZE
+                    walkable_positions.append((x, y))
+
+        # Mélanger les positions pour garantir une répartition aléatoire
+        random.shuffle(walkable_positions)
+
+        # Faire apparaître les ennemis à partir des positions disponibles
+        for _ in range(min(num_enemies, len(walkable_positions))):
+            pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
+            Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
 
     def is_surrounded_by_floor(self, layout, row, col):
         """Vérifie si une case est entourée de cases de sol (0) de tous les côtés."""

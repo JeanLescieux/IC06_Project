@@ -10,14 +10,14 @@ from tile import Tile
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos, groups, obstacle_sprites, player):
         super().__init__(groups)
-        self.original_image = pygame.image.load('../graphics/test/squid.png').convert_alpha()
+        self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/squid.png').convert_alpha(),(16,16))
         self.image = self.original_image
         self.rect = self.image.get_rect(topleft=pos)
         self.hitbox = self.rect.inflate(0, -10)
         self.health = 20
 
         self.direction = pygame.math.Vector2(0, -1)
-        self.speed = 3
+        self.speed = 1
         self.attack_cooldown = 500
         self.last_attack_time = 0
         self.obstacle_sprites = obstacle_sprites
@@ -27,8 +27,8 @@ class Enemy(pygame.sprite.Sprite):
         self.change_interval = 1000  # Temps entre chaque changement de direction (en ms)
         self.pause_time = 1000  # Pause de 1 seconde entre les changements de direction
         self.last_direction_change_time = 0  # Temps du dernier changement de direction
-        self.attack_radius = 100
-        self.vision_radius = 750
+        self.attack_radius = 25
+        self.vision_radius = 500
 
         self.large_vision_radius = 1000  # Plus grand que le champ de vision normal
         self.large_vision_angle = 200
@@ -36,7 +36,7 @@ class Enemy(pygame.sprite.Sprite):
         self.attack_damage = 10
         self.vision_angle = 90  # Angle de vision en degrés
 
-        self.weapon_image = pygame.image.load('../graphics/test/attack.png').convert_alpha()
+        self.weapon_image = pygame.transform.scale(pygame.image.load('../graphics/test/attack.png').convert_alpha(),(16,16))
         self.weapon_rect = self.weapon_image.get_rect()
         self.weapon_visible = False
         self.weapon_display_duration = 200
@@ -199,7 +199,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.health <= 0:
             self.kill()
 
-    def update(self, screen):
+    def update(self):
         self.move()
         self.update_orientation()
         self.attack()
