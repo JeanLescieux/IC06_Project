@@ -1,198 +1,172 @@
 import pygame
 from settings import *
-from support import import_folder
-from entity import Entity
+from debug import debug
+from enemy import Enemy
 
-class Player(Entity):
-    def __init__(self, pos, groups, obstacle_sprites, create_attack, destroy_attack, create_magic):
+ATTACK_RADIUS = 25  # Rayon d'attaque en pixels
+WEAPON_DISPLAY_TIME = 200  # Durée d'affichage de l'image de l'arme en millisecondes
+SHIELD_DURATION = 3000  # Durée du bouclier en millisecondes
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self, pos, groups, obstacle_sprites):
         super().__init__(groups)
-        # Charger et redimensionner l'image du personnage principal à 16x16
-        self.image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(), (16, 16))
+        self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(), (16, 16))
+        self.image = self.original_image
         self.rect = self.image.get_rect(topleft=pos)
-        self.hitbox = self.rect.inflate(-6, HITBOX_OFFSET['player'])  # Adapter l'offset en fonction de la taille 16x16
+        self.hitbox = self.rect.inflate(-6, HITBOX_OFFSET['player'])
+        self.attack_direction = pygame.math.Vector2(0, -1)
+        self.health = 100
+        self.attack_damage = 10
+        self.attack_cooldown = 500
+        self.last_attack_time = 0
+        self.direction = pygame.math.Vector2(0, -1)
+        self.speed = 2
+        self.space_held = False
+        self.alert = 0
 
-        # Chargement des animations du joueur redimensionnées
-        self.import_player_assets()
-        self.status = 'down'
-
-        # Mouvement
-        self.attacking = False
-        self.attack_cooldown = 400
-        self.attack_time = None
         self.obstacle_sprites = obstacle_sprites
 
-        # Arme
-        self.create_attack = create_attack
-        self.destroy_attack = destroy_attack
-        self.weapon_index = 0
-        self.weapon = list(weapon_data.keys())[self.weapon_index]
-        self.can_switch_weapon = True
-        self.weapon_switch_time = None
-        self.switch_duration_cooldown = 200
+        # Image et position de l'arme
+        self.weapon_image = pygame.transform.scale(pygame.image.load('../graphics/test/attack.png').convert_alpha(), (16, 16))
+        self.weapon_rect = self.weapon_image.get_rect()
+        self.weapon_visible = False
+        self.weapon_display_time = 0
 
-        # Magie
-        self.create_magic = create_magic
-        self.magic_index = 0
-        self.magic = list(magic_data.keys())[self.magic_index]
-        self.can_switch_magic = True
-        self.magic_switch_time = None
-
-        # Statistiques
-        self.stats = {'health': 100, 'energy': 60, 'attack': 10, 'magic': 4, 'speed': 1}
-        self.max_stats = {'health': 300, 'energy': 140, 'attack': 20, 'magic': 10, 'speed': 10}
-        self.upgrade_cost = {'health': 100, 'energy': 100, 'attack': 100, 'magic': 100, 'speed': 100}
-        self.health = self.stats['health'] * 0.5
-        self.energy = self.stats['energy'] * 0.8
-        self.exp = 5000
-        self.speed = self.stats['speed']
-
-        # Timer de dégât
-        self.vulnerable = True
-        self.hurt_time = None
-        self.invulnerability_duration = 500
-
-        # Son d'attaque
-        self.weapon_attack_sound = pygame.mixer.Sound('../audio/sword.wav')
-        self.weapon_attack_sound.set_volume(0.4)
-
-    def import_player_assets(self):
-        character_path = '../graphics/player/'
-        self.animations = {
-            'up': [], 'down': [], 'left': [], 'right': [],
-            'right_idle': [], 'left_idle': [], 'up_idle': [], 'down_idle': [],
-            'right_attack': [], 'left_attack': [], 'up_attack': [], 'down_attack': []
-        }
-
-        for animation in self.animations.keys():
-            full_path = character_path + animation
-            for image in import_folder(full_path):
-                # Redimensionner chaque frame d'animation en 16x16
-                resized_image = pygame.transform.scale(image, (16, 16))
-                self.animations[animation].append(resized_image)
+        # Bouclier
+        self.shield_active = False
+        self.shield_timer = 0  # Chronomètre du bouclier
+        self.shield_image = pygame.image.load('../graphics/test/shield.png').convert_alpha()  # Image du bouclier
+        self.shield_rect = self.rect.inflate(40, 40)  # Ajustez la taille du bouclier
 
     def input(self):
-        if not self.attacking:
-            keys = pygame.key.get_pressed()
+        keys = pygame.key.get_pressed()
 
-            # Mouvement
-            if keys[pygame.K_UP]:
-                self.direction.y = -1
-                self.status = 'up'
-            elif keys[pygame.K_DOWN]:
-                self.direction.y = 1
-                self.status = 'down'
-            else:
-                self.direction.y = 0
+        # Activer/désactiver le bouclier avec "B" seulement si le bouclier n'est pas déjà actif
+        if keys[pygame.K_b] and not self.shield_active:
+            self.shield_active = True
+            self.shield_timer = pygame.time.get_ticks()  # Démarre le chronomètre du bouclier
+        elif not keys[pygame.K_b] and self.shield_active:
+            self.shield_active = False  # Désactive dès qu'on relâche "B"
 
-            if keys[pygame.K_RIGHT]:
-                self.direction.x = 1
-                self.status = 'right'
-            elif keys[pygame.K_LEFT]:
-                self.direction.x = -1
-                self.status = 'left'
-            else:
-                self.direction.x = 0
+        # Gérer l'attaque
+        if keys[pygame.K_SPACE] and not self.space_held and not self.shield_active:
+            self.attack()
+            self.space_held = True
+        elif not keys[pygame.K_SPACE]:
+            self.space_held = False
 
-            # Attaque
-            if keys[pygame.K_SPACE]:
-                self.attacking = True
-                self.attack_time = pygame.time.get_ticks()
-                self.create_attack()
-                self.weapon_attack_sound.play()
+        # Gérer le mouvement seulement si le bouclier n'est pas actif
+        if not self.shield_active:
+            self.direction.y = keys[pygame.K_DOWN] - keys[pygame.K_UP]
+            self.direction.x = keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]
 
-            # Magie
-            if keys[pygame.K_LCTRL]:
-                self.attacking = True
-                self.attack_time = pygame.time.get_ticks()
-                style = list(magic_data.keys())[self.magic_index]
-                strength = list(magic_data.values())[self.magic_index]['strength'] + self.stats['magic']
-                cost = list(magic_data.values())[self.magic_index]['cost']
-                self.create_magic(style, strength, cost)
-
-            # Changer d'arme
-            if keys[pygame.K_q] and self.can_switch_weapon:
-                self.can_switch_weapon = False
-                self.weapon_switch_time = pygame.time.get_ticks()
-                self.weapon_index = (self.weapon_index + 1) % len(list(weapon_data.keys()))
-                self.weapon = list(weapon_data.keys())[self.weapon_index]
-
-            # Changer de magie
-            if keys[pygame.K_e] and self.can_switch_magic:
-                self.can_switch_magic = False
-                self.magic_switch_time = pygame.time.get_ticks()
-                self.magic_index = (self.magic_index + 1) % len(list(magic_data.keys()))
-                self.magic = list(magic_data.keys())[self.magic_index]
-
-    def get_status(self):
-        # Status idle
-        if self.direction.x == 0 and self.direction.y == 0:
-            if not 'idle' in self.status and not 'attack' in self.status:
-                self.status = self.status + '_idle'
-
-        if self.attacking:
-            self.direction.x = 0
-            self.direction.y = 0
-            if 'idle' in self.status:
-                self.status = self.status.replace('_idle', '_attack')
-            else:
-                self.status = self.status + '_attack'
-        else:
-            if 'attack' in self.status:
-                self.status = self.status.replace('_attack', '')
-
-    def cooldowns(self):
-        current_time = pygame.time.get_ticks()
-        if self.attacking and current_time - self.attack_time >= self.attack_cooldown + weapon_data[self.weapon]['cooldown']:
-            self.attacking = False
-            self.destroy_attack()
-
-        if not self.can_switch_weapon and current_time - self.weapon_switch_time >= self.switch_duration_cooldown:
-            self.can_switch_weapon = True
-
-        if not self.can_switch_magic and current_time - self.magic_switch_time >= self.switch_duration_cooldown:
-            self.can_switch_magic = True
-
-        if not self.vulnerable and current_time - self.hurt_time >= self.invulnerability_duration:
-            self.vulnerable = True
-
-    def animate(self):
-        animation = self.animations[self.status]
-        # Boucle sur les frames de l'animation
-        self.frame_index += self.animation_speed
-        if self.frame_index >= len(animation):
-            self.frame_index = 0
-        self.image = animation[int(self.frame_index)]
-        self.rect = self.image.get_rect(center=self.hitbox.center)
-
-        # Effet de clignotement
-        if not self.vulnerable:
-            alpha = self.wave_value()
-            self.image.set_alpha(alpha)
-        else:
-            self.image.set_alpha(255)
-
-    def get_full_weapon_damage(self):
-        return self.stats['attack'] + weapon_data[self.weapon]['damage']
-
-    def get_full_magic_damage(self):
-        return self.stats['magic'] + magic_data[self.magic]['strength']
-
-    def get_value_by_index(self, index):
-        return list(self.stats.values())[index]
-
-    def get_cost_by_index(self, index):
-        return list(self.upgrade_cost.values())[index]
-
-    def energy_recovery(self):
-        if self.energy < self.stats['energy']:
-            self.energy += 0.01 * self.stats['magic']
-        else:
-            self.energy = self.stats['energy']
+            # Mettre à jour la direction d'attaque si le joueur se déplace
+            if self.direction.magnitude() != 0:
+                self.attack_direction = self.direction.normalize()
 
     def update(self):
+        # Gérer la durée du bouclier
+        if self.shield_active and pygame.time.get_ticks() - self.shield_timer >= SHIELD_DURATION:
+            self.shield_active = False  # Désactive le bouclier après la durée
+
         self.input()
-        self.cooldowns()
-        self.get_status()
-        self.animate()
-        self.move(self.stats['speed'])
-        self.energy_recovery()
+        self.move(self.speed)
+        self.update_orientation()
+        debug(f'Player Health: {self.health}', y=10, x=10)
+        debug(f'Alert Level: {self.alert}', y=80, x=10)
+
+    def move(self, speed):
+        if not self.shield_active:
+            if self.direction.magnitude() != 0:
+                self.direction = self.direction.normalize()
+
+            self.hitbox.x += self.direction.x * speed
+            self.collision('horizontal')
+            self.hitbox.y += self.direction.y * speed
+            self.collision('vertical')
+            self.rect.center = self.hitbox.center
+    def update_orientation(self):
+        if self.direction.magnitude() != 0:
+            angle = self.direction.angle_to(pygame.math.Vector2(0, -1))
+            self.image = pygame.transform.rotate(self.original_image, angle)
+            self.rect = self.image.get_rect(center=self.rect.center)
+    def attack(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_attack_time >= self.attack_cooldown:
+            self.last_attack_time = current_time
+            if self.direction.magnitude() != 0:
+                self.attack_direction = self.direction.normalize()
+            
+            self.weapon_visible = True
+            self.weapon_display_time = current_time
+            offset = self.attack_direction * ATTACK_RADIUS
+            self.weapon_rect.center = self.rect.center + offset
+            
+            debug(f'Attack Direction: {self.attack_direction}', y=10, x=10)
+            
+            for sprite in self.obstacle_sprites:
+                if isinstance(sprite, Enemy):
+                    player_center = pygame.math.Vector2(self.rect.center)
+                    enemy_center = pygame.math.Vector2(sprite.rect.center)
+                    distance = player_center.distance_to(enemy_center)
+                    
+                    if distance <= ATTACK_RADIUS:
+                        direction_to_enemy = (enemy_center - player_center).normalize()
+                        
+                        # Calculer le produit scalaire entre la direction de l'attaque et la direction de l'ennemi
+                        dot_product = self.attack_direction.dot(sprite.direction)
+                        
+                        # Si le produit scalaire est proche de 1, l'attaque vient de devant l'ennemi
+                            
+                        if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
+                            # Dégâts doublés
+                            sprite.receive_damage(self.attack_damage * 10)
+                        else:
+                            # L'attaque vient de côté, dégâts réduits ou modifiés
+                            sprite.receive_damage(self.attack_damage)
+
+
+    def collision(self, direction):
+        for sprite in self.obstacle_sprites:
+            if sprite.hitbox.colliderect(self.hitbox) and sprite != self:
+                if direction == 'horizontal':
+                    if self.direction.x > 0:
+                        self.hitbox.right = sprite.hitbox.left
+                    elif self.direction.x < 0:
+                        self.hitbox.left = sprite.hitbox.right
+                elif direction == 'vertical':
+                    if self.direction.y > 0:
+                        self.hitbox.bottom = sprite.hitbox.top
+                    elif self.direction.y < 0:
+                        self.hitbox.top = sprite.hitbox.bottom
+
+    def draw_weapon(self, screen, offset):
+        if self.weapon_visible:
+            # Calculer la position dynamique de l'arme en fonction de la position actuelle du joueur
+            weapon_offset = self.attack_direction * ATTACK_RADIUS
+            self.weapon_rect.center = self.rect.center + weapon_offset
+
+            # Appliquer le décalage pour suivre la caméra
+            if not isinstance(offset, pygame.math.Vector2):
+                offset = pygame.math.Vector2(offset)
+            
+            # Afficher l'arme avec la position ajustée
+            screen.blit(self.weapon_image, self.weapon_rect.topleft - offset)
+            
+            # Cacher l'arme après un certain temps
+            if pygame.time.get_ticks() - self.weapon_display_time > WEAPON_DISPLAY_TIME:
+                self.weapon_visible = False
+
+    def draw_shield(self, screen, offset):
+        if self.shield_active:
+            # Position du bouclier (centre du joueur)
+            shield_pos = self.rect.center
+
+            # Appliquer le décalage pour la caméra
+            if not isinstance(offset, pygame.math.Vector2):
+                offset = pygame.math.Vector2(offset)
+
+            # Afficher le bouclier avec la position ajustée
+            screen.blit(self.shield_image, shield_pos - offset)
+
+
