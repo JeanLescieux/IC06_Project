@@ -25,7 +25,7 @@ class Player(pygame.sprite.Sprite):
         self.alert = 0
 
 
-        self.vision = 100
+        self.vision = 150
 
         self.obstacle_sprites = obstacle_sprites
         self.visible_sprite = visibleSprite

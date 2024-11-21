@@ -28,10 +28,10 @@ class Enemy(pygame.sprite.Sprite):
         self.pause_time = 1000  # Pause de 1 seconde entre les changements de direction
         self.last_direction_change_time = 0  # Temps du dernier changement de direction
         self.attack_radius = 25
-        self.vision_radius = 500
+        self.vision_radius = 120
 
-        self.large_vision_radius = 1000  # Plus grand que le champ de vision normal
-        self.large_vision_angle = 200
+        self.large_vision_radius = 500  # Plus grand que le champ de vision normal
+        self.large_vision_angle = 360
 
         self.attack_damage = 10
         self.vision_angle = 90  # Angle de vision en degrés
@@ -157,14 +157,15 @@ class Enemy(pygame.sprite.Sprite):
         alert_bonus = self.player.alert  # Multiplier par un facteur (ajuster selon la rapidité désirée)
 
         # 8. Appliquer le bonus d'alerte en fonction de la direction de l'ennemi
-        self.hitbox.x += (self.direction.x * self.speed + alert_bonus * self.direction.x)
+        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
         if self.check_collision('horizontal'):
-            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus * self.direction.x)
+            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
+            self.get_random_direction()
 
-        self.hitbox.y += (self.direction.y * self.speed + alert_bonus * self.direction.y)
+        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
         if self.check_collision('vertical'):
-            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus * self.direction.y)
-
+            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
+            self.get_random_direction()
         # Mise à jour de la position réelle
         self.rect.center = self.hitbox.center
 
