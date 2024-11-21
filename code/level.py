@@ -5,6 +5,8 @@ from tile import Tile
 from player import Player
 from enemy import Enemy
 from support import import_csv_layout
+from debug import debug
+
 
 class Level:
     def __init__(self):
@@ -89,11 +91,11 @@ class Level:
         # Position de spawn du joueur
         player_spawn = self.find_player_spawn(layout)
         if player_spawn:
-            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites)
+            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites)
             self.spawn_enemies(layout, num_enemies=5)
         else:
             # Position par défaut si aucune position de spawn trouvée
-            self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites)
+            self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites)
             self.spawn_enemies(layout, num_enemies=5)
 
     def is_corner_wall(self, layout, row, col):
@@ -198,32 +200,38 @@ class YSortCameraGroup(pygame.sprite.Group):
         )
 
     def custom_draw(self, player):
-        # Getting the offset 
+        # Calcul du décalage pour centrer la caméra sur le joueur
         self.offset.x = player.rect.centerx - self.half_width
         self.offset.y = player.rect.centery - self.half_height
-        
+
+        # Premier passage : Dessiner les sols, murs, et tonneaux découverts
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
-            if getattr(sprite, 'sprite_type', None) == 'floor':
+            if getattr(sprite, 'sprite_type', None) in ['floor', 'wall', 'barrel'] and getattr(sprite, 'discovered', False):
                 offset_pos = sprite.rect.topleft - self.offset
                 self.display_surface.blit(sprite.image, offset_pos)
-        
-		
-		# Deuxième passe : Dessiner les autres éléments (joueur, murs, etc.)
-        
-        for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
-            if getattr(sprite, 'sprite_type', None) != 'floor':
-                offset_pos = sprite.rect.topleft - self.offset
-                self.display_surface.blit(sprite.image, offset_pos)
-		
-        # Dessiner les sprites avec le décalage
+
+        # Deuxième passage : Dessiner les ennemis uniquement s'ils sont sur une case découverte
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
             if isinstance(sprite, Enemy):
-                sprite.display_weapon(self.display_surface, self.offset)
-        
-        # Afficher l'arme du joueur en appliquant le même décalage
+                # Vérifier si l'ennemi est sur une case découverte
+                enemy_on_discovered_tile = any(
+                    other.rect.colliderect(sprite.rect) and getattr(other, 'sprite_type', None) in ['floor', 'wall', 'barrel'] and getattr(other, 'discovered', None)
+                    for other in self.sprites()
+                )
+                if enemy_on_discovered_tile:
+                    offset_pos = sprite.rect.topleft - self.offset
+                    self.display_surface.blit(sprite.image, offset_pos)
+                    sprite.display_weapon(self.display_surface, self.offset)
+
+        # Troisième passage : Dessiner les autres éléments (joueur, bouclier, etc.)
+        for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
+            if getattr(sprite, 'sprite_type', None) not in ['floor', 'wall', 'barrel'] and not isinstance(sprite, Enemy):
+                offset_pos = sprite.rect.topleft - self.offset
+                self.display_surface.blit(sprite.image, offset_pos)
+
+        # Dessiner les armes et le bouclier du joueur
         player.draw_weapon(self.display_surface, self.offset)
-        
-        # Dessiner le bouclier du joueur avec le décalage
         player.draw_shield(self.display_surface, self.offset)
-        
+
+            
 

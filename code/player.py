@@ -8,7 +8,7 @@ WEAPON_DISPLAY_TIME = 200  # Durée d'affichage de l'image de l'arme en millisec
 SHIELD_DURATION = 3000  # Durée du bouclier en millisecondes
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, obstacle_sprites):
+    def __init__(self, pos, groups, obstacle_sprites, visibleSprite):
         super().__init__(groups)
         self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(), (16, 16))
         self.image = self.original_image
@@ -24,7 +24,11 @@ class Player(pygame.sprite.Sprite):
         self.space_held = False
         self.alert = 0
 
+
+        self.vision = 100
+
         self.obstacle_sprites = obstacle_sprites
+        self.visible_sprite = visibleSprite
 
         # Image et position de l'arme
         self.weapon_image = pygame.transform.scale(pygame.image.load('../graphics/test/attack.png').convert_alpha(), (16, 16))
@@ -64,6 +68,19 @@ class Player(pygame.sprite.Sprite):
             if self.direction.magnitude() != 0:
                 self.attack_direction = self.direction.normalize()
 
+
+    def update_vision(self):
+        for sprite in self.visible_sprite:
+            if not isinstance(sprite, Enemy) and not isinstance(sprite, Player):
+                player_center = pygame.math.Vector2(self.rect.center)
+                sprite_center = pygame.math.Vector2(sprite.rect.center)
+                distance = player_center.distance_to(sprite_center)
+                if distance < self.vision and getattr(sprite, 'discovered', False) == False:
+                    #print(getattr(sprite, 'rect', None))
+                    setattr(sprite,'discovered', True)
+                    #print(getattr(sprite, 'discovered', None))
+                    
+
     def update(self):
         # Gérer la durée du bouclier
         if self.shield_active and pygame.time.get_ticks() - self.shield_timer >= SHIELD_DURATION:
@@ -72,6 +89,7 @@ class Player(pygame.sprite.Sprite):
         self.input()
         self.move(self.speed)
         self.update_orientation()
+        self.update_vision()
         debug(f'Player Health: {self.health}', y=10, x=10)
         debug(f'Alert Level: {self.alert}', y=80, x=10)
 
