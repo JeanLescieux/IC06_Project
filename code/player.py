@@ -87,6 +87,8 @@ class Player(pygame.sprite.Sprite):
             self.shield_active = False  # Désactive le bouclier après la durée
 
         self.input()
+        if self.health <= 0:
+            self.kill()
         self.move(self.speed)
         self.update_orientation()
         self.update_vision()

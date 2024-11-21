@@ -91,7 +91,8 @@ class Enemy(pygame.sprite.Sprite):
         angle_to_player = enemy_direction.angle_to(direction_vector.normalize())
 
         if abs(angle_to_player) > angle_of_view / 2:
-            return False
+            if large == False:
+                return False
 
         # Vérification des obstacles entre l'ennemi et le joueur (comme avant)
         for sprite in self.obstacle_sprites:
@@ -160,12 +161,14 @@ class Enemy(pygame.sprite.Sprite):
         self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
         if self.check_collision('horizontal'):
             self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
-            self.get_random_direction()
+            if not self.chasing_player:
+                self.get_random_direction()
 
         self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
         if self.check_collision('vertical'):
             self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
-            self.get_random_direction()
+            if not self.chasing_player:
+                self.get_random_direction()
         # Mise à jour de la position réelle
         self.rect.center = self.hitbox.center
 
