@@ -5,7 +5,7 @@ class Tile(pygame.sprite.Sprite):
     def __init__(self, pos, groups, sprite_type, surface=None):
         super().__init__(groups)
         self.sprite_type = sprite_type
-
+        self.discovered = False
         # Charge l'image en fonction du type de sprite
         if surface:
             self.image = surface
