@@ -13,6 +13,7 @@ BOUNDARY = '395'  # Boundary (walls, water, etc.)
 WALKABLE = '-1'   # Empty space
 WALL = '1'        # Wall tile
 FLOOR = '0'       # Walkable floor tile
+DOOR = '99'       # Door tile
 
 class RoomPartition:
     def __init__(self, x, y, width, height):
