@@ -87,7 +87,7 @@ class Level:
                     ):
                         # Placer un unique sprite de porte de 48x48 centré sur les 9 cases
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'door', self.graphics['door'], size=(48, 48))
-                        player_spawn = (x + 16 , y + 16)  # Spawner le joueur en dessous de la porte
+                        player_spawn = (x + TILESIZE, y + 3 * TILESIZE)  # Spawner le joueur en dessous de la porte
 
 
         # Troisième passe : Assurer que toutes les zones walkable ont un sprite de sol

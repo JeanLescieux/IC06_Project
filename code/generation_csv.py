@@ -103,12 +103,54 @@ def connect_rooms(grid, partition):
     if partition.right:
         connect_rooms(grid, partition.right)
 
+def place_doors(boundary_grid):
+    """
+    Place des portes (code '99') sur des murs ('395') situés à la limite haute
+    d'une zone "walkable" (code '0') en respectant les critères définis.
+    """
+    # Parcours de la grille à partir de la troisième ligne pour éviter les indices négatifs
+    for y in range(2, len(boundary_grid) - 1):  # On évite la première et la dernière ligne
+        for x in range(0, len(boundary_grid[0]) - 2):  # On s'assure d'avoir au moins 3 cases horizontales
+
+            # Vérification des conditions pour placer une porte
+            if (
+                # Trois cases murales consécutives
+                boundary_grid[y][x] == '395' and
+                boundary_grid[y][x + 1] == '395' and
+                boundary_grid[y][x + 2] == '395' and
+
+                # Une ligne en dessous doit être walkable
+                boundary_grid[y + 1][x] == '0' and
+                boundary_grid[y + 1][x + 1] == '0' and
+                boundary_grid[y + 1][x + 2] == '0' and
+
+                # Deux lignes au-dessus doivent être murales ou en dehors de la grille
+                (y - 1 < 0 or (boundary_grid[y - 1][x] == '395' and 
+                               boundary_grid[y - 1][x + 1] == '395' and 
+                               boundary_grid[y - 1][x + 2] == '395'))
+            ):
+                # Débogage : Afficher les coordonnées des portes placées
+                print(f"Valid door position at y={y}, x={x}-{x+2}")
+
+                # Remplacer les murs par la porte (3x3)
+                for offset_y in range(3):
+                    boundary_grid[y - offset_y][x] = '99'
+                    boundary_grid[y - offset_y][x + 1] = '99'
+                    boundary_grid[y - offset_y][x + 2] = '99'
+
+                # On place une seule porte pour éviter des conflits avec d'autres conditions
+                return
+
+
 def generate_and_save_csv():
-    """Generate the map using BSP and save it to CSV files."""
+    """
+    Génère une grille de carte, y ajoute des portes, et sauvegarde les fichiers CSV.
+    """
+    # Génération initiale de la grille
     boundary_grid = [[BOUNDARY for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
     floor_grid = [[WALKABLE for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
-    
-    # Set outer boundaries
+
+    # Définir les limites extérieures
     for x in range(GRID_WIDTH):
         boundary_grid[0][x] = BOUNDARY
         boundary_grid[GRID_HEIGHT - 1][x] = BOUNDARY
@@ -116,10 +158,10 @@ def generate_and_save_csv():
         boundary_grid[y][0] = BOUNDARY
         boundary_grid[y][GRID_WIDTH - 1] = BOUNDARY
 
-    # Generate BSP partitions
+    # Génération des salles et des corridors
     root = RoomPartition(1, 1, GRID_WIDTH - 2, GRID_HEIGHT - 2)
     partitions = [root]
-    for _ in range(10):  # Adjust the number of splits
+    for _ in range(10):  # Ajustez ce nombre pour contrôler le nombre de divisions
         new_partitions = []
         for partition in partitions:
             if partition.split():
@@ -127,7 +169,7 @@ def generate_and_save_csv():
                 new_partitions.append(partition.right)
         partitions.extend(new_partitions)
 
-    # Create rooms in each partition
+    # Création des salles dans chaque partition
     rooms = []
     for partition in partitions:
         partition.create_room()
@@ -135,44 +177,16 @@ def generate_and_save_csv():
             create_room(boundary_grid, partition.room)
             rooms.append(partition.room)
 
-    # Connect rooms with corridors
+    # Connexion des salles par des corridors
     connect_rooms(boundary_grid, root)
 
-    if rooms:
-        # Parcourir toute la grille pour trouver 3 murs consécutifs
-        for y in range(2, len(boundary_grid)):  # Commence à y=2 pour éviter d'accéder à des indices négatifs pour les lignes au-dessus
-            for x in range(len(boundary_grid[0]) - 2):  # S'assurer qu'il reste au moins 2 cases à droite
-                if (
-                    boundary_grid[y][x] == '395' and
-                    boundary_grid[y][x + 1] == '395' and
-                    boundary_grid[y][x + 2] == '395'
-                ):
-                    print(f"Valid wall for door at y={y}, x={x}, x+1={x+1}, x+2={x+2}")
+    # Placement des portes
+    place_doors(boundary_grid)
 
-                    # Remplacer ces murs par une porte
-                    boundary_grid[y][x] = '99'
-                    boundary_grid[y][x + 1] = '99'
-                    boundary_grid[y][x + 2] = '99'
-
-                    # Remplacer également les deux lignes au-dessus
-                    for offset in range(1, 3):
-                        boundary_grid[y - offset][x] = '99'
-                        boundary_grid[y - offset][x + 1] = '99'
-                        boundary_grid[y - offset][x + 2] = '99'
-
-                    # Stop après avoir placé une porte
-                    break
-            else:
-                continue  # Continue dans la boucle principale si aucune porte n'a été placée
-            break
-
-
-
-
-
-    # Save CSV files
+    # Sauvegarde des grilles dans des fichiers CSV
     save_csv(boundary_grid, '../map/map_FloorBlocks.csv')
     save_csv(floor_grid, '../map/map_Floor.csv')
+
     
 
 def save_csv(grid, filename):
