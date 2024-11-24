@@ -23,6 +23,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = 2
         self.space_held = False
         self.alert = 0
+        self.has_witch = False
 
 
         self.vision = 150

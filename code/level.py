@@ -209,7 +209,9 @@ class Level:
                 if self.player.has_witch:
                     print("Félicitations, vous avez gagné !")
                 else:
-                    print("Vous devez récupérer l'objectif pour ouvrir la porte.")
+                    print("Vous devez sauver la sorcière pour ouvrir la porte.")
+                    return  # Ne rien faire d'autre si le joueur n'a pas la witch
+
 
 
     def destroy_attack(self):
