@@ -161,26 +161,78 @@ def calculate_distance(point1, point2):
     """Calcule la distance de Manhattan entre deux points."""
     return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
 
+def get_rooms(boundary_grid):
+    """Récupère toutes les pièces de la grille."""
+    rooms = []
+    for y, row in enumerate(boundary_grid):
+        for x, cell in enumerate(row):
+            if cell == FLOOR:
+                # Identifier la pièce associée à cette case
+                for room in rooms:
+                    if (room[0] <= x < room[0] + room[2] and
+                        room[1] <= y < room[1] + room[3]):
+                        break
+                else:
+                    # Ajouter une nouvelle pièce
+                    room_width, room_height = get_room_dimensions(boundary_grid, x, y)
+                    rooms.append((x, y, room_width, room_height))
+    return rooms
+
+def get_room_dimensions(boundary_grid, start_x, start_y):
+    """
+    Calcule les dimensions (largeur, hauteur) de la pièce à partir d'une case donnée.
+    """
+    max_width = 0
+    max_height = 0
+
+    # Vérifie la hauteur de la pièce
+    for y in range(start_y, len(boundary_grid)):
+        if boundary_grid[y][start_x] != FLOOR:
+            break
+        max_height += 1
+
+        # Vérifie la largeur pour chaque ligne de la pièce
+        row_width = 0
+        for x in range(start_x, len(boundary_grid[y])):
+            if boundary_grid[y][x] != FLOOR:
+                break
+            row_width += 1
+
+        # On considère la largeur minimale trouvée
+        if max_width == 0:
+            max_width = row_width
+        else:
+            max_width = min(max_width, row_width)
+
+    return max_width, max_height
+
+
 def place_objective(boundary_grid, spawn):
     """
-    Place l'objectif (witch) dans la case la plus éloignée du spawn.
+    Place l'objectif (witch) au centre de la pièce la plus éloignée du spawn.
     """
-    walkable_positions = [(x, y) for y, row in enumerate(boundary_grid) for x, cell in enumerate(row) if cell == FLOOR]
-    furthest_position = None
+    rooms = get_rooms(boundary_grid)
+    furthest_room = None
     max_distance = -1
 
-    for pos in walkable_positions:
-        distance = calculate_distance(spawn, pos)
+    # Identifier la pièce la plus éloignée
+    for room in rooms:
+        room_center = (room[0] + room[2] // 2, room[1] + room[3] // 2)
+        distance = calculate_distance(spawn, room_center)
         if distance > max_distance:
             max_distance = distance
-            furthest_position = pos
+            furthest_room = room
 
-    if furthest_position:
-        x, y = furthest_position
-        boundary_grid[y][x] = '2'  # Placer l'objectif
-        print(f"Objectif placé à {furthest_position}")
+    # Placer la witch au centre de cette pièce
+    if furthest_room:
+        center_x = furthest_room[0] + furthest_room[2] // 2
+        center_y = furthest_room[1] + furthest_room[3] // 2
 
-
+        if boundary_grid[center_y][center_x] == FLOOR:
+            boundary_grid[center_y][center_x] = '2'  # Placer l'objectif
+            print(f"Objectif placé au centre de la pièce : {(center_x, center_y)}")
+        else:
+            print(f"Erreur : Impossible de placer la witch au centre de la pièce {(center_x, center_y)}.")
 
 
 def generate_and_save_csv():
