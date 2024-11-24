@@ -30,9 +30,10 @@ class Level:
             'floor': pygame.image.load('../graphics/donjon/floor.png').convert_alpha(),
             'barrel': pygame.image.load('../graphics/donjon/Barrel.png').convert_alpha(),
             'door': pygame.image.load('../graphics/donjon/door.png').convert_alpha(),
+            'witch': pygame.image.load('../graphics/donjon/witch.png').convert_alpha(),
         }
 
-       # Liste pour stocker les positions des murs du milieu pour placer les murs du haut plus tard
+        #Liste pour stocker les positions des murs du milieu pour placer les murs du haut plus tard
         self.middle_wall_positions = []
 
         # Première passe : Placement des murs (middle, side, bottom, corner)
@@ -89,21 +90,23 @@ class Level:
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'door', self.graphics['door'], size=(48, 48))
                         player_spawn = (x + TILESIZE, y + 3 * TILESIZE)  # Spawner le joueur en dessous de la porte
 
-
         # Troisième passe : Assurer que toutes les zones walkable ont un sprite de sol
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
                 x = col_index * TILESIZE
                 y = row_index * TILESIZE
 
-                # Remplace tout sur les cases `0` par un sol (floor)
-                if col == '0':
-                    # Supprime les sprites existants à cette position
+                # Placer un sprite de sol sur toutes les cases walkables
+                if col == '0' or col == '2':  # Inclure '2' pour placer un sol sous la witch
                     for sprite in self.visible_sprites:
                         if sprite.rect.topleft == (x, y):
-                            sprite.kill()
-                    # Ajoute le sol
-                    Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
+                            sprite.kill()  # Supprimer tout sprite existant à cette position
+                    Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])  # Placer le sol
+
+                # Si la case est une witch, placer le sprite witch au-dessus
+                if col == '2':  # Case pour l'objectif
+                    witch_tile = Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'witch', self.graphics['witch'])
+                    witch_tile.discovered = False  # Rendre la witch invisible jusqu'à découverte
 
         # Position de spawn du joueur
         if player_spawn:
@@ -190,6 +193,26 @@ class Level:
     # Fonctions supplémentaires liées aux actions du joueur
     def create_attack(self):
         print("Attaque du joueur créée !")
+    
+    def check_witch_interaction(self):
+        """Vérifie si le joueur interagit avec la witch."""
+        for sprite in self.obstacle_sprites:
+            if getattr(sprite, 'sprite_type', None) == 'witch' and sprite.rect.colliderect(self.player.rect):
+                self.player.has_witch = True  # Le joueur récupère l'objectif
+                sprite.kill()  # Supprime le sprite witch après interaction
+                print("Vous avez récupéré l'objectif !")
+
+    def check_victory(self):
+        """Vérifie si le joueur peut terminer le niveau."""
+        for sprite in self.obstacle_sprites:
+            if getattr(sprite, 'sprite_type', None) == 'door' and sprite.rect.colliderect(self.player.rect):
+                if self.player.has_witch:
+                    print("Félicitations, vous avez gagné !")
+                else:
+                    print("Vous devez sauver la sorcière pour ouvrir la porte.")
+                    return  # Ne rien faire d'autre si le joueur n'a pas la witch
+
+
 
     def destroy_attack(self):
         print("Attaque du joueur détruite !")
@@ -201,6 +224,9 @@ class Level:
         """Exécute le niveau (mise à jour et dessin)."""
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
+        self.check_witch_interaction()
+        self.check_victory()
+
 
 
 
@@ -222,7 +248,7 @@ class YSortCameraGroup(pygame.sprite.Group):
 
         # Premier passage : Dessiner les sols, murs, et tonneaux découverts
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
-            if getattr(sprite, 'sprite_type', None) in ['floor', 'wall', 'barrel'] and getattr(sprite, 'discovered', False):
+            if getattr(sprite, 'sprite_type', None) in ['floor', 'wall', 'barrel', 'witch'] and getattr(sprite, 'discovered', False):
                 offset_pos = sprite.rect.topleft - self.offset
                 self.display_surface.blit(sprite.image, offset_pos)
 
@@ -241,7 +267,7 @@ class YSortCameraGroup(pygame.sprite.Group):
 
         # Troisième passage : Dessiner les autres éléments (joueur, bouclier, etc.)
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
-            if getattr(sprite, 'sprite_type', None) not in ['floor', 'wall', 'barrel'] and not isinstance(sprite, Enemy):
+            if getattr(sprite, 'sprite_type', None) not in ['floor', 'wall', 'barrel', 'witch'] and not isinstance(sprite, Enemy):
                 offset_pos = sprite.rect.topleft - self.offset
                 self.display_surface.blit(sprite.image, offset_pos)
 
