@@ -13,7 +13,7 @@ BOUNDARY = '395'  # Boundary (walls, water, etc.)
 WALKABLE = '-1'   # Empty space
 WALL = '1'        # Wall tile
 FLOOR = '0'       # Walkable floor tile
-DOOR = '99'       # Door tile
+DOOR = '99'     # Door tile 
 
 class RoomPartition:
     def __init__(self, x, y, width, height):
@@ -138,10 +138,42 @@ def generate_and_save_csv():
     # Connect rooms with corridors
     connect_rooms(boundary_grid, root)
 
+    if rooms:
+        # Parcourir toute la grille pour trouver 3 murs consécutifs
+        for y in range(2, len(boundary_grid)):  # Commence à y=2 pour éviter d'accéder à des indices négatifs pour les lignes au-dessus
+            for x in range(len(boundary_grid[0]) - 2):  # S'assurer qu'il reste au moins 2 cases à droite
+                if (
+                    boundary_grid[y][x] == '395' and
+                    boundary_grid[y][x + 1] == '395' and
+                    boundary_grid[y][x + 2] == '395'
+                ):
+                    print(f"Valid wall for door at y={y}, x={x}, x+1={x+1}, x+2={x+2}")
+
+                    # Remplacer ces murs par une porte
+                    boundary_grid[y][x] = '99'
+                    boundary_grid[y][x + 1] = '99'
+                    boundary_grid[y][x + 2] = '99'
+
+                    # Remplacer également les deux lignes au-dessus
+                    for offset in range(1, 3):
+                        boundary_grid[y - offset][x] = '99'
+                        boundary_grid[y - offset][x + 1] = '99'
+                        boundary_grid[y - offset][x + 2] = '99'
+
+                    # Stop après avoir placé une porte
+                    break
+            else:
+                continue  # Continue dans la boucle principale si aucune porte n'a été placée
+            break
+
+
+
+
+
     # Save CSV files
     save_csv(boundary_grid, '../map/map_FloorBlocks.csv')
     save_csv(floor_grid, '../map/map_Floor.csv')
-
+    
 
 def save_csv(grid, filename):
     """Save the generated map to a CSV file."""
