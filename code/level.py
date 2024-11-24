@@ -30,6 +30,7 @@ class Level:
             'floor': pygame.image.load('../graphics/donjon/floor.png').convert_alpha(),
             'barrel': pygame.image.load('../graphics/donjon/Barrel.png').convert_alpha(),
             'door': pygame.image.load('../graphics/donjon/door.png').convert_alpha(),
+            'witch': pygame.image.load('../graphics/donjon/witch.png').convert_alpha(),
         }
 
        # Liste pour stocker les positions des murs du milieu pour placer les murs du haut plus tard
@@ -96,14 +97,16 @@ class Level:
                 x = col_index * TILESIZE
                 y = row_index * TILESIZE
 
-                # Remplace tout sur les cases `0` par un sol (floor)
-                if col == '0':
-                    # Supprime les sprites existants à cette position
+                # Placer un sprite de sol sur toutes les cases walkables
+                if col == '0' or col == '2':  # Inclure '2' pour placer un sol sous la witch
                     for sprite in self.visible_sprites:
                         if sprite.rect.topleft == (x, y):
-                            sprite.kill()
-                    # Ajoute le sol
-                    Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
+                            sprite.kill()  # Supprimer tout sprite existant à cette position
+                    Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])  # Placer le sol
+
+                # Si la case est une witch, placer le sprite witch au-dessus
+                if col == '2':  # Case pour l'objectif
+                    Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'witch', self.graphics['witch'])
 
         # Position de spawn du joueur
         if player_spawn:
@@ -190,6 +193,24 @@ class Level:
     # Fonctions supplémentaires liées aux actions du joueur
     def create_attack(self):
         print("Attaque du joueur créée !")
+    
+    def check_witch_interaction(self):
+        """Vérifie si le joueur interagit avec la witch."""
+        for sprite in self.obstacle_sprites:
+            if getattr(sprite, 'sprite_type', None) == 'witch' and sprite.rect.colliderect(self.player.rect):
+                self.player.has_witch = True  # Le joueur récupère l'objectif
+                sprite.kill()  # Supprime le sprite witch après interaction
+                print("Vous avez récupéré l'objectif !")
+
+    def check_victory(self):
+        """Vérifie si le joueur peut terminer le niveau."""
+        for sprite in self.obstacle_sprites:
+            if getattr(sprite, 'sprite_type', None) == 'door' and sprite.rect.colliderect(self.player.rect):
+                if self.player.has_witch:
+                    print("Félicitations, vous avez gagné !")
+                else:
+                    print("Vous devez récupérer l'objectif pour ouvrir la porte.")
+
 
     def destroy_attack(self):
         print("Attaque du joueur détruite !")
@@ -201,6 +222,9 @@ class Level:
         """Exécute le niveau (mise à jour et dessin)."""
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
+        self.check_witch_interaction()
+        self.check_victory()
+
 
 
 

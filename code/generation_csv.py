@@ -103,6 +103,22 @@ def connect_rooms(grid, partition):
     if partition.right:
         connect_rooms(grid, partition.right)
 
+def calculate_distance(point1, point2):
+    return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
+
+def find_furthest_room(grid, spawn):
+    walkable_positions = [(x, y) for y, row in enumerate(grid) for x, cell in enumerate(row) if cell == '0']
+    furthest_position = None
+    max_distance = -1
+
+    for pos in walkable_positions:
+        distance = calculate_distance(spawn, pos)
+        if distance > max_distance:
+            max_distance = distance
+            furthest_position = pos
+
+    return furthest_position
+
 def place_doors(boundary_grid):
     """
     Place des portes (code '99') sur des murs ('395') situés à la limite haute
@@ -140,6 +156,31 @@ def place_doors(boundary_grid):
 
                 # On place une seule porte pour éviter des conflits avec d'autres conditions
                 return
+
+def calculate_distance(point1, point2):
+    """Calcule la distance de Manhattan entre deux points."""
+    return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
+
+def place_objective(boundary_grid, spawn):
+    """
+    Place l'objectif (witch) dans la case la plus éloignée du spawn.
+    """
+    walkable_positions = [(x, y) for y, row in enumerate(boundary_grid) for x, cell in enumerate(row) if cell == FLOOR]
+    furthest_position = None
+    max_distance = -1
+
+    for pos in walkable_positions:
+        distance = calculate_distance(spawn, pos)
+        if distance > max_distance:
+            max_distance = distance
+            furthest_position = pos
+
+    if furthest_position:
+        x, y = furthest_position
+        boundary_grid[y][x] = '2'  # Placer l'objectif
+        print(f"Objectif placé à {furthest_position}")
+
+
 
 
 def generate_and_save_csv():
@@ -182,6 +223,21 @@ def generate_and_save_csv():
 
     # Placement des portes
     place_doors(boundary_grid)
+
+    # Placement de l'objectif
+    spawn = None
+    for y, row in enumerate(boundary_grid):
+        for x, cell in enumerate(row):
+            if cell == DOOR and y + 1 < len(boundary_grid) and boundary_grid[y + 1][x] == FLOOR:
+                spawn = (x, y + 1)
+                print(f"Spawn trouvé à {spawn}")
+                break
+        if spawn:
+            break
+    if spawn:
+        place_objective(boundary_grid, spawn)
+    else:
+        print("Impossible de trouver un spawn pour placer l'objectif.")
 
     # Sauvegarde des grilles dans des fichiers CSV
     save_csv(boundary_grid, '../map/map_FloorBlocks.csv')
