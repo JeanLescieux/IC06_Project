@@ -6,6 +6,7 @@ from player import Player
 from enemy import Enemy
 from support import import_csv_layout
 from debug import debug
+from Sprite_sheet import sprite_Door_Close
 
 
 class Level:
@@ -13,6 +14,8 @@ class Level:
         # Sprite groups
         self.visible_sprites = YSortCameraGroup()
         self.obstacle_sprites = pygame.sprite.Group()
+        player_spawn = None  # Initialisation par défaut
+
 
         # Import layout from the CSV file
         layout = import_csv_layout('../map/map_FloorBlocks.csv')
@@ -26,6 +29,7 @@ class Level:
             'bottom_wall': pygame.image.load('../graphics/donjon/downTile.png').convert_alpha(),
             'floor': pygame.image.load('../graphics/donjon/floor.png').convert_alpha(),
             'barrel': pygame.image.load('../graphics/donjon/Barrel.png').convert_alpha(),
+            'door': pygame.image.load('../graphics/donjon/door.png').convert_alpha(),
         }
 
        # Liste pour stocker les positions des murs du milieu pour placer les murs du haut plus tard
@@ -72,6 +76,19 @@ class Level:
                     # Placer un tonneau si la case murale a 3 voisins ou plus walkable
                     if walkable_neighbors >= 3:
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'barrel', self.graphics['barrel'])
+                
+                if col == '99':  # Porte
+                    # Vérifiez si c'est une porte de 3x3
+                    if (
+                        row_index < len(layout) - 2 and col_index < len(row) - 2 and
+                        layout[row_index][col_index + 1] == '99' and layout[row_index][col_index + 2] == '99' and
+                        layout[row_index + 1][col_index] == '99' and layout[row_index + 1][col_index + 1] == '99' and layout[row_index + 1][col_index + 2] == '99' and
+                        layout[row_index + 2][col_index] == '99' and layout[row_index + 2][col_index + 1] == '99' and layout[row_index + 2][col_index + 2] == '99'
+                    ):
+                        # Placer un unique sprite de porte de 48x48 centré sur les 9 cases
+                        Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'door', self.graphics['door'], size=(48, 48))
+                        player_spawn = (x + TILESIZE, y + 3 * TILESIZE)  # Spawner le joueur en dessous de la porte
+
 
         # Troisième passe : Assurer que toutes les zones walkable ont un sprite de sol
         for row_index, row in enumerate(layout):
@@ -89,7 +106,6 @@ class Level:
                     Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])
 
         # Position de spawn du joueur
-        player_spawn = self.find_player_spawn(layout)
         if player_spawn:
             self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites)
             self.spawn_enemies(layout, num_enemies=5)
