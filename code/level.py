@@ -33,7 +33,7 @@ class Level:
             'witch': pygame.image.load('../graphics/donjon/witch.png').convert_alpha(),
         }
 
-       # Liste pour stocker les positions des murs du milieu pour placer les murs du haut plus tard
+        #Liste pour stocker les positions des murs du milieu pour placer les murs du haut plus tard
         self.middle_wall_positions = []
 
         # Première passe : Placement des murs (middle, side, bottom, corner)
@@ -90,7 +90,6 @@ class Level:
                         Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'door', self.graphics['door'], size=(48, 48))
                         player_spawn = (x + TILESIZE, y + 3 * TILESIZE)  # Spawner le joueur en dessous de la porte
 
-
         # Troisième passe : Assurer que toutes les zones walkable ont un sprite de sol
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
@@ -106,7 +105,8 @@ class Level:
 
                 # Si la case est une witch, placer le sprite witch au-dessus
                 if col == '2':  # Case pour l'objectif
-                    Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'witch', self.graphics['witch'])
+                    witch_tile = Tile((x, y), [self.visible_sprites, self.obstacle_sprites], 'witch', self.graphics['witch'])
+                    witch_tile.discovered = False  # Rendre la witch invisible jusqu'à découverte
 
         # Position de spawn du joueur
         if player_spawn:
@@ -246,7 +246,7 @@ class YSortCameraGroup(pygame.sprite.Group):
 
         # Premier passage : Dessiner les sols, murs, et tonneaux découverts
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
-            if getattr(sprite, 'sprite_type', None) in ['floor', 'wall', 'barrel'] and getattr(sprite, 'discovered', False):
+            if getattr(sprite, 'sprite_type', None) in ['floor', 'wall', 'barrel', 'witch'] and getattr(sprite, 'discovered', False):
                 offset_pos = sprite.rect.topleft - self.offset
                 self.display_surface.blit(sprite.image, offset_pos)
 
@@ -265,7 +265,7 @@ class YSortCameraGroup(pygame.sprite.Group):
 
         # Troisième passage : Dessiner les autres éléments (joueur, bouclier, etc.)
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
-            if getattr(sprite, 'sprite_type', None) not in ['floor', 'wall', 'barrel'] and not isinstance(sprite, Enemy):
+            if getattr(sprite, 'sprite_type', None) not in ['floor', 'wall', 'barrel', 'witch'] and not isinstance(sprite, Enemy):
                 offset_pos = sprite.rect.topleft - self.offset
                 self.display_surface.blit(sprite.image, offset_pos)
 
