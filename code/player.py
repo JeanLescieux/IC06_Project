@@ -9,7 +9,7 @@ WEAPON_DISPLAY_TIME = 200  # Durée d'affichage de l'image de l'arme en millisec
 SHIELD_DURATION = 3000  # Durée du bouclier en millisecondes
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, obstacle_sprites, visibleSprite):
+    def __init__(self, pos, groups, obstacle_sprites, visibleSprite, show_message_callback):
         super().__init__(groups)
         self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(), (16, 16))
         self.image = self.original_image
@@ -27,6 +27,7 @@ class Player(pygame.sprite.Sprite):
         self.has_key = False
         self.has_witch = False
 
+        self.show_message = show_message_callback
 
 
         self.vision = 150
@@ -89,7 +90,7 @@ class Player(pygame.sprite.Sprite):
             if isinstance(sprite, Key) and self.rect.colliderect(sprite.rect):
                 self.has_key = True  # Le joueur ramasse la clé
                 sprite.kill()  # Supprime la clé du jeu
-                print("Clé ramassée !")     
+                self.show_message("Key found !")   
 
     def update(self):
         # Gérer la durée du bouclier
