@@ -178,7 +178,29 @@ class Level:
         for _ in range(min(num_enemies, len(walkable_positions))):
             pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
             Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
-    
+
+
+    def spawn_enemies(self, layout, num_enemies=5):
+        walkable_positions = []
+
+        # Trouver les positions marchables
+        for row_index, row in enumerate(layout):
+            for col_index, col in enumerate(row):
+                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
+                    x = col_index * TILESIZE
+                    y = row_index * TILESIZE
+                    walkable_positions.append((x, y))
+
+        random.shuffle(walkable_positions)
+
+        # Sélectionner un ennemi aléatoire pour avoir la clé
+        key_enemy_index = random.randint(0, min(num_enemies, len(walkable_positions)) - 1)
+
+        for i in range(min(num_enemies, len(walkable_positions))):
+            pos = walkable_positions.pop()
+            has_key = (i == key_enemy_index)  # L'ennemi sélectionné a la clé
+            Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player, has_key)
+
     def spawn_new_enemies(self):
         possible_spawns = []
         for sprite in self.visible_sprites:
@@ -238,7 +260,7 @@ class Level:
         self.check_witch_interaction()
         self.check_victory()
         current_time = pygame.time.get_ticks()
-        if current_time - self.newEnnemyTimer >= self.newEnnemy:
+        if (current_time - self.newEnnemyTimer >= self.newEnnemy) & (self.player.has_witch == True):
             self.newEnnemyTimer = current_time
             self.spawn_new_enemies()
 
