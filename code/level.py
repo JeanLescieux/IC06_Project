@@ -1,6 +1,6 @@
 import random
 import pygame
-from settings import TILESIZE, ZOOM_FACTOR, WATER_COLOR
+from settings import TILESIZE, ZOOM_FACTOR, WIDTH, HEIGTH, FONT_PATH
 from tile import Tile
 from player import Player
 from enemy import Enemy
@@ -8,6 +8,12 @@ from support import import_csv_layout
 from debug import debug
 from Sprite_sheet import sprite_Door_Close
 
+def draw_message(screen, message, font_size, color, pos):
+        """Affiche un message sur l'écran."""
+        font = pygame.font.Font(FONT_PATH, font_size)
+        text_surface = font.render(message, True, color)
+        text_rect = text_surface.get_rect(center=pos)
+        screen.blit(text_surface, text_rect)
 
 class Level:
     def __init__(self):
@@ -15,6 +21,10 @@ class Level:
         self.visible_sprites = YSortCameraGroup()
         self.obstacle_sprites = pygame.sprite.Group()
         player_spawn = None  # Initialisation par défaut
+
+        self.message = ""  # Message à afficher
+        self.message_timer = 0  # Durée d'affichage du message
+        self.message_duration = 3000  # Durée (en ms) avant disparition du message
 
         self.newEnnemy = 10000
         self.newEnnemyTimer = 0
@@ -112,7 +122,7 @@ class Level:
 
         # Position de spawn du joueur
         if player_spawn:
-            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites)
+            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.show_message)
             self.spawn_enemies(layout, num_enemies=5)
         else:
             # Position par défaut si aucune position de spawn trouvée
@@ -178,7 +188,29 @@ class Level:
         for _ in range(min(num_enemies, len(walkable_positions))):
             pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
             Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
-    
+
+
+    def spawn_enemies(self, layout, num_enemies=5):
+        walkable_positions = []
+
+        # Trouver les positions marchables
+        for row_index, row in enumerate(layout):
+            for col_index, col in enumerate(row):
+                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
+                    x = col_index * TILESIZE
+                    y = row_index * TILESIZE
+                    walkable_positions.append((x, y))
+
+        random.shuffle(walkable_positions)
+
+        # Sélectionner un ennemi aléatoire pour avoir la clé
+        key_enemy_index = random.randint(0, min(num_enemies, len(walkable_positions)) - 1)
+
+        for i in range(min(num_enemies, len(walkable_positions))):
+            pos = walkable_positions.pop()
+            has_key = (i == key_enemy_index)  # L'ennemi sélectionné a la clé
+            Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player, has_key)
+
     def spawn_new_enemies(self):
         possible_spawns = []
         for sprite in self.visible_sprites:
@@ -203,26 +235,33 @@ class Level:
 
     # Fonctions supplémentaires liées aux actions du joueur
     def create_attack(self):
-        print("Attaque du joueur créée !")
+        pass
     
     def check_witch_interaction(self):
-        """Vérifie si le joueur interagit avec la witch."""
+        """Vérifie si le joueur interagit avec la sorcière."""
         for sprite in self.obstacle_sprites:
             if getattr(sprite, 'sprite_type', None) == 'witch' and sprite.rect.colliderect(self.player.rect):
-                self.player.has_witch = True  # Le joueur récupère l'objectif
-                sprite.kill()  # Supprime le sprite witch après interaction
-                print("Vous avez récupéré l'objectif !")
+                if self.player.has_key:  # Vérifie si le joueur a une clé
+                    self.player.has_witch = True
+                    sprite.kill()  # Supprime le sprite witch après interaction
+                    self.show_message("You saved the witch, time to get out fast !")
+                else:
+                    self.show_message("You need a key kept by a guard to save the witch !")
+
 
     def check_victory(self):
         """Vérifie si le joueur peut terminer le niveau."""
         for sprite in self.obstacle_sprites:
             if getattr(sprite, 'sprite_type', None) == 'door' and sprite.rect.colliderect(self.player.rect):
                 if self.player.has_witch:
-                    print("Félicitations, vous avez gagné !")
+                    self.show_message("You escaped like a pro !")
+                    return True
                 else:
-                    print("Vous devez sauver la sorcière pour ouvrir la porte.")
-                    return  # Ne rien faire d'autre si le joueur n'a pas la witch
+                    self.show_message("Rather die than leave the prison without your loved one!")
+                    return False
+        return False
 
+    
 
 
     def destroy_attack(self):
@@ -237,11 +276,24 @@ class Level:
         self.visible_sprites.update()
         self.check_witch_interaction()
         self.check_victory()
+        self.draw_message(self.visible_sprites.display_surface)
         current_time = pygame.time.get_ticks()
-        if current_time - self.newEnnemyTimer >= self.newEnnemy:
+        if (current_time - self.newEnnemyTimer >= self.newEnnemy) & (self.player.has_witch == True):
             self.newEnnemyTimer = current_time
             self.spawn_new_enemies()
 
+
+    def show_message(self, message):
+        """Définit un message à afficher temporairement."""
+        self.message = message
+        self.message_timer = pygame.time.get_ticks()
+
+    def draw_message(self, screen):
+        """Affiche le message si le délai n'est pas expiré."""
+        if self.message and pygame.time.get_ticks() - self.message_timer < self.message_duration:
+            draw_message(screen, self.message, 24, (255, 255, 255), (WIDTH // 2, HEIGTH // 2))
+        else:
+            self.message = ""  # Efface le message après expiration
 
 class YSortCameraGroup(pygame.sprite.Group):
     def __init__(self):

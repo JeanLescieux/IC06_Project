@@ -2,8 +2,8 @@ import random
 import csv
 
 # Constants for generation
-GRID_WIDTH = 100
-GRID_HEIGHT = 100
+GRID_WIDTH = 60
+GRID_HEIGHT = 60
 MIN_ROOM_SIZE = 5
 MAX_ROOM_SIZE = 10
 ROOM_MARGIN = 1
