@@ -2,6 +2,7 @@ import pygame
 from settings import *
 from debug import debug
 from enemy import Enemy
+from key import Key
 
 ATTACK_RADIUS = 25  # Rayon d'attaque en pixels
 WEAPON_DISPLAY_TIME = 200  # Durée d'affichage de l'image de l'arme en millisecondes
@@ -23,7 +24,9 @@ class Player(pygame.sprite.Sprite):
         self.speed = 2
         self.space_held = False
         self.alert = 0
+        self.has_key = False
         self.has_witch = False
+
 
 
         self.vision = 150
@@ -80,7 +83,13 @@ class Player(pygame.sprite.Sprite):
                     #print(getattr(sprite, 'rect', None))
                     setattr(sprite,'discovered', True)
                     #print(getattr(sprite, 'discovered', None))
-                    
+
+    def check_key_pickup(self):
+        for sprite in self.obstacle_sprites:
+            if isinstance(sprite, Key) and self.rect.colliderect(sprite.rect):
+                self.has_key = True  # Le joueur ramasse la clé
+                sprite.kill()  # Supprime la clé du jeu
+                print("Clé ramassée !")     
 
     def update(self):
         # Gérer la durée du bouclier
@@ -95,6 +104,8 @@ class Player(pygame.sprite.Sprite):
         self.update_vision()
         debug(f'Player Health: {self.health}', y=10, x=10)
         debug(f'Alert Level: {self.alert}', y=80, x=10)
+        self.check_key_pickup()
+    
 
     def move(self, speed):
         if not self.shield_active:

@@ -228,12 +228,16 @@ class Level:
         print("Attaque du joueur créée !")
     
     def check_witch_interaction(self):
-        """Vérifie si le joueur interagit avec la witch."""
+        """Vérifie si le joueur interagit avec la sorcière."""
         for sprite in self.obstacle_sprites:
             if getattr(sprite, 'sprite_type', None) == 'witch' and sprite.rect.colliderect(self.player.rect):
-                self.player.has_witch = True  # Le joueur récupère l'objectif
-                sprite.kill()  # Supprime le sprite witch après interaction
-                print("Vous avez récupéré l'objectif !")
+                if self.player.has_key:  # Vérifie si le joueur a une clé
+                    self.player.has_witch = True
+                    sprite.kill()  # Supprime le sprite witch après interaction
+                    print("Vous avez sauvé la sorcière !")
+                else:
+                    print("Vous avez besoin de la clé pour sauver la sorcière.")
+
 
     def check_victory(self):
         """Vérifie si le joueur peut terminer le niveau."""
@@ -263,6 +267,8 @@ class Level:
         if (current_time - self.newEnnemyTimer >= self.newEnnemy) & (self.player.has_witch == True):
             self.newEnnemyTimer = current_time
             self.spawn_new_enemies()
+
+    
 
 
 class YSortCameraGroup(pygame.sprite.Group):
