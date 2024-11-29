@@ -255,10 +255,13 @@ class Level:
             if getattr(sprite, 'sprite_type', None) == 'door' and sprite.rect.colliderect(self.player.rect):
                 if self.player.has_witch:
                     self.show_message("You escaped like a pro !")
+                    return True
                 else:
                     self.show_message("Rather die than leave the prison without your loved one!")
-                    return  # Ne rien faire d'autre si le joueur n'a pas la witch
+                    return False
+        return False
 
+    
 
 
     def destroy_attack(self):
