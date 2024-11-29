@@ -16,6 +16,8 @@ class Level:
         self.obstacle_sprites = pygame.sprite.Group()
         player_spawn = None  # Initialisation par défaut
 
+        self.newEnnemy = 10000
+        self.newEnnemyTimer = 0
 
         # Import layout from the CSV file
         layout = import_csv_layout('../map/map_FloorBlocks.csv')
@@ -176,6 +178,15 @@ class Level:
         for _ in range(min(num_enemies, len(walkable_positions))):
             pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
             Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
+    
+    def spawn_new_enemies(self):
+        possible_spawns = []
+        for sprite in self.visible_sprites:
+            if getattr(sprite, 'sprite_type', None) == 'floor' and not getattr(sprite, 'discovered', False):
+                possible_spawns.append(getattr(sprite, 'pos', None))
+        if len(possible_spawns) > 0:
+            pos = random.randint(0, len(possible_spawns))
+            Enemy(possible_spawns[pos], [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
 
     def is_surrounded_by_floor(self, layout, row, col):
         """Vérifie si une case est entourée de cases de sol (0) de tous les côtés."""
@@ -219,15 +230,17 @@ class Level:
 
     def create_magic(self, style, strength, cost):
         print(f"Magie {style} créée avec force {strength} et coût {cost}.")
-
+    
     def run(self):
         """Exécute le niveau (mise à jour et dessin)."""
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
         self.check_witch_interaction()
         self.check_victory()
-
-
+        current_time = pygame.time.get_ticks()
+        if current_time - self.newEnnemyTimer >= self.newEnnemy:
+            self.newEnnemyTimer = current_time
+            self.spawn_new_enemies()
 
 
 class YSortCameraGroup(pygame.sprite.Group):

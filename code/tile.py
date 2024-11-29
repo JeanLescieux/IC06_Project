@@ -6,6 +6,7 @@ class Tile(pygame.sprite.Sprite):
         super().__init__(groups)
         self.sprite_type = sprite_type
         self.discovered = False
+        self.pos = pos
         # Load the image based on sprite type
         if surface:
             self.image = surface
