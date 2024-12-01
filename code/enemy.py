@@ -3,18 +3,21 @@ import random
 from settings import *
 from debug import debug
 from tile import Tile
+from key import Key
 
 # Variable globale alert (à définir dans votre script principal)
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, obstacle_sprites, player):
+    def __init__(self, pos, groups, obstacle_sprites, player, has_key=False):
         super().__init__(groups)
         self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/squid.png').convert_alpha(),(16,16))
         self.image = self.original_image
         self.rect = self.image.get_rect(topleft=pos)
         self.hitbox = self.rect.inflate(0, -10)
         self.health = 20
+
+        self.has_key = has_key  # Cet ennemi possède une clé ?
 
         self.direction = pygame.math.Vector2(0, -1)
         self.speed = 1
@@ -46,7 +49,6 @@ class Enemy(pygame.sprite.Sprite):
 
         # Temps depuis la détection du joueur
         self.detection_time = None
-
 
     def display_weapon(self, screen, offset):
         """ Affiche l'image de l'arme temporairement si l'ennemi attaque. """
@@ -201,6 +203,10 @@ class Enemy(pygame.sprite.Sprite):
     def receive_damage(self, damage):
         self.health = max(self.health - damage, 0)
         if self.health <= 0:
+            if self.has_key:
+                # Faire apparaître la clé à la position de l'ennemi
+                print('Key Dropped!')
+                Key(self.rect.center, [self.groups()[0], self.obstacle_sprites])  # Ajuster le groupe si nécessaire
             self.kill()
 
     def update(self):
