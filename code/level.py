@@ -285,7 +285,7 @@ class YSortCameraGroup(pygame.sprite.Group):
                 self.display_surface.blit(sprite.image, offset_pos)
 
         # Dessiner les armes et le bouclier du joueur
-        player.draw_weapon(self.display_surface, self.offset)
+        # player.draw_weapon(self.display_surface, self.offset)
         player.draw_shield(self.display_surface, self.offset)
 
             
