@@ -5,6 +5,10 @@ from generation_csv import generate_and_save_csv
 
 class Game:
 	def __init__(self):
+		pygame.mixer.init()
+		pygame.mixer.music.load("../audio/8bit Dungeon Level.mp3")
+		pygame.mixer.music.play(-1)
+
 		generate_and_save_csv()
 		# general setup
 		pygame.init()

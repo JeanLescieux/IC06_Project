@@ -18,6 +18,8 @@ def draw_message(screen, message, font_size, color, pos):
 class Level:
     def __init__(self):
         # Sprite groups
+        pygame.mixer.music.load("../audio/8bit Dungeon Level.mp3")
+        pygame.mixer.music.play(-1)
         self.visible_sprites = YSortCameraGroup()
         self.obstacle_sprites = pygame.sprite.Group()
         player_spawn = None  # Initialisation par défaut
@@ -248,6 +250,8 @@ class Level:
                     self.player.has_witch = True
                     sprite.kill()  # Supprime le sprite witch après interaction
                     self.show_message("You saved the witch, time to get out fast !")
+                    pygame.mixer.music.load("../audio/8bit Dungeon Boss.mp3")
+                    pygame.mixer.music.play(-1)
                 else:
                     self.show_message("You need a key kept by a guard to save the witch !")
 
