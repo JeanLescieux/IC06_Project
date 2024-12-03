@@ -17,7 +17,8 @@ class Game:
 		self.clock = pygame.time.Clock()
 
 		self.nLevel = 1
-		self.level = Level()
+		self.alert = 0
+		self.level = Level(self.alert)
 		self.state = 'menu'
 
 	def display_menu(self):
@@ -61,7 +62,8 @@ class Game:
 
 	def next_level(self):
 		self.nLevel += 1
-		self.level = Level()  # Génère un nouveau niveau
+		self.alert = self.level.player.alert
+		self.level = Level(self.alert)  # Génère un nouveau niveau
 		generate_and_save_csv()
 
 	def run(self):
@@ -84,6 +86,9 @@ class Game:
 			pygame.display.update()
 			self.clock.tick(FPS)
 
+
+
+
 if __name__ == '__main__':
-    game = Game()
-    game.run()
+    GAME = Game()
+    GAME.run()

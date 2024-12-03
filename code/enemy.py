@@ -5,6 +5,7 @@ from debug import debug
 from tile import Tile
 from key import Key
 
+
 # Variable globale alert (à définir dans votre script principal)
 
 
@@ -104,6 +105,7 @@ class Enemy(pygame.sprite.Sprite):
         return True
 
     def move(self):
+        
         # 1. Vérification de la direction actuelle pour éviter un déplacement constant vers le haut
         if self.direction.magnitude() != 0:
             self.last_non_zero_direction = self.direction.normalize()
@@ -155,7 +157,6 @@ class Enemy(pygame.sprite.Sprite):
         # 6. Normaliser la direction avant d'appliquer le déplacement
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
-
         # 7. Calcul du facteur de vitesse en fonction de l'alerte du joueur
         alert_bonus = self.player.alert  # Multiplier par un facteur (ajuster selon la rapidité désirée)
 

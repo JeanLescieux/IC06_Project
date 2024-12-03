@@ -16,8 +16,9 @@ def draw_message(screen, message, font_size, color, pos):
         screen.blit(text_surface, text_rect)
 
 class Level:
-    def __init__(self):
+    def __init__(self, alert):
         # Sprite groups
+        self.alert = alert
         pygame.mixer.music.load("../audio/8bit Dungeon Level.mp3")
         pygame.mixer.music.play(-1)
         self.visible_sprites = YSortCameraGroup()
@@ -27,7 +28,6 @@ class Level:
         self.message = ""  # Message à afficher
         self.message_timer = 0  # Durée d'affichage du message
         self.message_duration = 3000  # Durée (en ms) avant disparition du message
-
         self.newEnnemy = 5000
         self.newEnnemyTimer = 0
 
@@ -124,11 +124,11 @@ class Level:
 
         # Position de spawn du joueur
         if player_spawn:
-            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.show_message)
+            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.show_message, self.alert)
             self.spawn_enemies(layout, num_enemies=5)
         else:
             # Position par défaut si aucune position de spawn trouvée
-            self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites)
+            self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.alert)
             self.spawn_enemies(layout, num_enemies=5)
 
     def is_corner_wall(self, layout, row, col):
@@ -279,6 +279,7 @@ class Level:
     
     def run(self):
         """Exécute le niveau (mise à jour et dessin)."""
+        
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
         self.check_witch_interaction()
@@ -346,6 +347,7 @@ class YSortCameraGroup(pygame.sprite.Group):
         # Dessiner les armes et le bouclier du joueur
         # player.draw_weapon(self.display_surface, self.offset)
         player.draw_shield(self.display_surface, self.offset)
+        
 
             
 
