@@ -234,7 +234,12 @@ class Player(pygame.sprite.Sprite):
                     enemy_center = pygame.math.Vector2(sprite.rect.center)
                     distance = player_center.distance_to(enemy_center)
                     if distance <= ATTACK_RADIUS:
-                        sprite.receive_damage(self.attack_damage)
+                        direction_to_enemy = (enemy_center - player_center).normalize()
+                        dot_product = self.attack_direction.dot(sprite.direction)
+                        if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
+                            sprite.receive_damage(self.attack_damage * 10)
+                        else:
+                            sprite.receive_damage(self.attack_damage)
 
 
     def collision(self, direction):

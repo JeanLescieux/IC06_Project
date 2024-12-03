@@ -26,7 +26,7 @@ class Level:
         self.message_timer = 0  # Durée d'affichage du message
         self.message_duration = 3000  # Durée (en ms) avant disparition du message
 
-        self.newEnnemy = 10000
+        self.newEnnemy = 5000
         self.newEnnemyTimer = 0
 
         # Import layout from the CSV file
@@ -214,8 +214,11 @@ class Level:
     def spawn_new_enemies(self):
         possible_spawns = []
         for sprite in self.visible_sprites:
-            if getattr(sprite, 'sprite_type', None) == 'floor' and not getattr(sprite, 'discovered', False):
-                possible_spawns.append(getattr(sprite, 'pos', None))
+                player_center = pygame.math.Vector2(self.player.rect.center)
+                sprite_center = pygame.math.Vector2(sprite.rect.center)
+                distance = player_center.distance_to(sprite_center)
+                if getattr(sprite, 'sprite_type', None) == 'floor' and distance > 200:
+                    possible_spawns.append(getattr(sprite, 'pos', None))
         if len(possible_spawns) > 0:
             pos = random.randint(0, len(possible_spawns))
             Enemy(possible_spawns[pos], [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
