@@ -328,7 +328,7 @@ class YSortCameraGroup(pygame.sprite.Group):
                 if enemy_on_discovered_tile:
                     offset_pos = sprite.rect.topleft - self.offset
                     self.display_surface.blit(sprite.image, offset_pos)
-                    sprite.display_weapon(self.display_surface, self.offset)
+                    # sprite.display_weapon(self.display_surface, self.offset)
 
         # Troisième passage : Dessiner les autres éléments (joueur, bouclier, etc.)
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):

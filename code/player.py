@@ -38,9 +38,10 @@ class Player(pygame.sprite.Sprite):
         self.obstacle_sprites = obstacle_sprites
         self.visible_sprite = visibleSprite
 
+        # Animations
         self.import_player_assets()
-        self.status = 'down_idle'  # 默认状态为向下待机
-        self.frame_index = 0  # 用于动画帧索引
+        self.status = 'down_idle'
+        self.frame_index = 0
         self.animation_speed = 0.15
 
         # Image et position de l'arme
@@ -50,8 +51,8 @@ class Player(pygame.sprite.Sprite):
         # self.weapon_display_time = 0
 
         # Attack
-        self.attacking = False  # 当前是否正在攻击
-        self.attack_start_time = 0  # 攻击开始时间
+        self.attacking = False
+        self.attack_start_time = 0
 
         # Bouclier
         self.shield_active = False
