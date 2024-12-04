@@ -18,7 +18,7 @@ class Player(pygame.sprite.Sprite):
         self.hitbox = self.rect.inflate(-6, HITBOX_OFFSET['player'])
         self.alert = alert
         self.attack_direction = pygame.math.Vector2(0, -1)
-        self.health = 100
+        self.health = 99999
         self.attack_damage = 10
         self.attack_cooldown = 500
         self.last_attack_time = 0
@@ -235,11 +235,12 @@ class Player(pygame.sprite.Sprite):
                     distance = player_center.distance_to(enemy_center)
                     if distance <= ATTACK_RADIUS:
                         direction_to_enemy = (enemy_center - player_center).normalize()
-                        dot_product = self.attack_direction.dot(sprite.direction)
-                        if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
-                            sprite.receive_damage(self.attack_damage * 10)
-                        else:
-                            sprite.receive_damage(self.attack_damage)
+                        dot_product = self.attack_direction.dot(direction_to_enemy)
+                        if dot_product > 0.7:
+                            if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
+                                sprite.receive_damage(self.attack_damage * 10)
+                            else:
+                                sprite.receive_damage(self.attack_damage)
 
 
     def collision(self, direction):

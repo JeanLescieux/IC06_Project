@@ -100,10 +100,8 @@ class Enemy(pygame.sprite.Sprite):
         if current_time - self.last_direction_change_time >= self.pause_time:
             if self.direction == pygame.math.Vector2(0, 0):
                 self.get_random_direction()
-            # else:
-            #     self.direction = pygame.math.Vector2(0, 0)
-
-
+            else:
+                self.direction = pygame.math.Vector2(0, 0)
             self.last_direction_change_time = current_time
 
 
