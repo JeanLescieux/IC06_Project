@@ -41,7 +41,7 @@ class Enemy(pygame.sprite.Sprite):
         self.large_vision_angle = 360
 
         self.attack_damage = 10
-        self.vision_angle = 90  # Angle de vision en degrés
+        self.vision_angle = 150  # Angle de vision en degrés
 
         self.weapon_image = pygame.transform.scale(pygame.image.load('../graphics/test/attack.png').convert_alpha(),(16,16))
         self.weapon_rect = self.weapon_image.get_rect()
@@ -187,7 +187,7 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     self.direction = pygame.math.Vector2(0, 0)  # Pause aléatoire
                     self.last_direction_change_time = current_time
-                    self.pause_time = 1000  # Durée de la pause
+                    self.pause_time = 2000/(self.player.alert + 1)  # Durée de la pause
 
         # 6. Normaliser la direction avant d'appliquer le déplacement
         if self.direction.magnitude() != 0:
@@ -196,22 +196,21 @@ class Enemy(pygame.sprite.Sprite):
         alert_bonus = self.player.alert  # Multiplier par un facteur (ajuster selon la rapidité désirée)
 
         # 8. Appliquer le bonus d'alerte en fonction de la direction de l'ennemi
-        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
+        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.07 * self.direction.x)
         if self.check_collision('horizontal'):
-            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
+            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*.07 * self.direction.x)
             if not self.chasing_player:
                 self.get_random_direction()
 
-        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
+        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*.07 * self.direction.y)
         if self.check_collision('vertical'):
-            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
+            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*.07 * self.direction.y)
             if not self.chasing_player:
                 self.get_random_direction()
         # Mise à jour de la position réelle
         self.rect.center = self.hitbox.center
 
         # Affichage de la santé de l'ennemi pour le debug
-        debug(f'Enemy Health: {self.health}', y=40, x=10)
 
 
         

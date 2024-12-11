@@ -34,7 +34,8 @@ class Game:
 		instructions = [
 			"Explore the labyrinth to retrieve the key",
 			"and free the witch. Watch out for the guards,",
-			"who may sound the alarm."
+			"who may sound the alarm.",
+			"beating them from behind may be pretty effective..."
 		]
 		
 		# Texte pour jouer
@@ -63,8 +64,9 @@ class Game:
 	def next_level(self):
 		self.nLevel += 1
 		self.alert = self.level.player.alert
-		self.level = Level(self.alert)  # Génère un nouveau niveau
 		generate_and_save_csv()
+		self.level = Level(self.alert)  # Génère un nouveau niveau
+		
 
 	def run(self):
 		while True:

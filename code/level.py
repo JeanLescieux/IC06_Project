@@ -1,3 +1,4 @@
+import math
 import random
 import pygame
 from settings import TILESIZE, ZOOM_FACTOR, WIDTH, HEIGTH, FONT_PATH
@@ -124,9 +125,11 @@ class Level:
 
         # Position de spawn du joueur
         if player_spawn:
+            self.player_spawn = player_spawn
             self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.show_message, self.alert)
             self.spawn_enemies(layout, num_enemies=5)
         else:
+            self.player_spawn = (100, 100)
             # Position par défaut si aucune position de spawn trouvée
             self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.alert)
             self.spawn_enemies(layout, num_enemies=5)
@@ -171,25 +174,25 @@ class Level:
         return None
     
     # Dans la classe Level, ajoutez cette méthode
-    def spawn_enemies(self, layout, num_enemies=5):
-        """Fait apparaître un certain nombre d'ennemis sur des cases marchables."""
-        walkable_positions = []
+    # def spawn_enemies(self, layout, num_enemies=5):
+    #     """Fait apparaître un certain nombre d'ennemis sur des cases marchables."""
+    #     walkable_positions = []
 
-        # Parcourir le layout pour trouver toutes les cases marchables
-        for row_index, row in enumerate(layout):
-            for col_index, col in enumerate(row):
-                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
-                    x = col_index * TILESIZE
-                    y = row_index * TILESIZE
-                    walkable_positions.append((x, y))
+    #     # Parcourir le layout pour trouver toutes les cases marchables
+    #     for row_index, row in enumerate(layout):
+    #         for col_index, col in enumerate(row):
+    #             if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
+    #                 x = col_index * TILESIZE
+    #                 y = row_index * TILESIZE
+    #                 walkable_positions.append((x, y))
 
-        # Mélanger les positions pour garantir une répartition aléatoire
-        random.shuffle(walkable_positions)
+    #     # Mélanger les positions pour garantir une répartition aléatoire
+    #     random.shuffle(walkable_positions)
 
-        # Faire apparaître les ennemis à partir des positions disponibles
-        for _ in range(min(num_enemies, len(walkable_positions))):
-            pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
-            Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
+    #     # Faire apparaître les ennemis à partir des positions disponibles
+    #     for _ in range(min(num_enemies, len(walkable_positions))):
+    #         pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
+    #         Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
 
 
     def spawn_enemies(self, layout, num_enemies=5):
@@ -198,7 +201,7 @@ class Level:
         # Trouver les positions marchables
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
-                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
+                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index) and math.dist(self.player_spawn, (col_index * TILESIZE, row_index * TILESIZE)) > 200:
                     x = col_index * TILESIZE
                     y = row_index * TILESIZE
                     walkable_positions.append((x, y))
@@ -335,6 +338,7 @@ class YSortCameraGroup(pygame.sprite.Group):
                 )
                 if enemy_on_discovered_tile:
                     offset_pos = sprite.rect.topleft - self.offset
+                    offset_pos.y -= 6
                     self.display_surface.blit(sprite.image, offset_pos)
                     #sprite.display_weapon(self.display_surface, self.offset)
 
@@ -342,6 +346,8 @@ class YSortCameraGroup(pygame.sprite.Group):
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
             if getattr(sprite, 'sprite_type', None) not in ['floor', 'wall', 'barrel', 'witch'] and not isinstance(sprite, Enemy):
                 offset_pos = sprite.rect.topleft - self.offset
+                if isinstance(sprite, Player):
+                    offset_pos.y -= 6
                 self.display_surface.blit(sprite.image, offset_pos)
 
         # Dessiner les armes et le bouclier du joueur

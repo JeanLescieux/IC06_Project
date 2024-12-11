@@ -6,7 +6,7 @@ FPS      = 60
 TILESIZE = 16
 ZOOM_FACTOR = 15
 HITBOX_OFFSET = {
-    'player': -26,
+    'player': -4,
     'object': -40,
     'grass': -10,
     'invisible': 0,

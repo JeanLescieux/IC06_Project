@@ -13,9 +13,9 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos, groups, obstacle_sprites, visibleSprite, show_message_callback, alert):
         super().__init__(groups)
         # self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(),(32,32))
-        self.image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(),(40,40))
+        self.image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(),(16,16))
         self.rect = self.image.get_rect(topleft=pos)
-        self.hitbox = self.rect.inflate(-26, HITBOX_OFFSET['player'])
+        self.hitbox = self.rect.inflate(-4, HITBOX_OFFSET['player'])
         self.alert = alert
         self.attack_direction = pygame.math.Vector2(0, -1)
         self.health = 100
