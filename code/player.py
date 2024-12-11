@@ -15,7 +15,7 @@ class Player(pygame.sprite.Sprite):
         # self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(),(32,32))
         self.image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(),(16,16))
         self.rect = self.image.get_rect(topleft=pos)
-        self.hitbox = self.rect.inflate(-4, HITBOX_OFFSET['player'])
+        self.hitbox = self.rect.inflate(-6, HITBOX_OFFSET['player'])
         self.alert = alert
         self.attack_direction = pygame.math.Vector2(0, -1)
         self.health = 100
@@ -236,7 +236,7 @@ class Player(pygame.sprite.Sprite):
                     if distance <= ATTACK_RADIUS:
                         direction_to_enemy = (enemy_center - player_center).normalize()
                         dot_product = self.attack_direction.dot(direction_to_enemy)
-                        if dot_product > 0.7:
+                        if dot_product > 0.3:
                             if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
                                 sprite.receive_damage(self.attack_damage * 10)
                             else:

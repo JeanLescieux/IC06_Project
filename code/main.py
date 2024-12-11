@@ -17,7 +17,7 @@ class Game:
 		self.clock = pygame.time.Clock()
 
 		self.nLevel = 1
-		self.alert = 0
+		self.alert = 4
 		self.level = Level(self.alert)
 		self.state = 'menu'
 
@@ -26,8 +26,8 @@ class Game:
 		self.screen.fill('black')
 		font_title = pygame.font.Font(None, 74)  # Police pour le titre
 		font_text = pygame.font.Font(None, 36)  # Police pour le texte secondaire
-		
-		# Texte principal
+	
+		# Texte principal 
 		title_text = font_title.render('Prison Maze', True, 'white')
 		
 		# Texte secondaire découpé en plusieurs lignes

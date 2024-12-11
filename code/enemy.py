@@ -22,7 +22,7 @@ class Enemy(pygame.sprite.Sprite):
         self.health = 20
 
         self.has_key = has_key  # Cet ennemi possède une clé ?
-
+        self.alert_cooldown = 1500
         self.direction = pygame.math.Vector2(0, -1)
         self.speed = 1
         self.attack_cooldown = 500
@@ -173,7 +173,7 @@ class Enemy(pygame.sprite.Sprite):
             debug('En Poursuite!', y=60, x=10)
 
             # Vérifier si le joueur est en alerte après 2 secondes de poursuite
-            if pygame.time.get_ticks() - self.detection_time >= 2000 and not self.alert:
+            if pygame.time.get_ticks() - self.detection_time >= self.alert_cooldown and not self.alert:
                 self.player.alert += 1
                 self.alert = True
         else:
@@ -196,15 +196,16 @@ class Enemy(pygame.sprite.Sprite):
         alert_bonus = self.player.alert  # Multiplier par un facteur (ajuster selon la rapidité désirée)
 
         # 8. Appliquer le bonus d'alerte en fonction de la direction de l'ennemi
-        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.07 * self.direction.x)
+        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.1 * self.direction.x)
+        
         if self.check_collision('horizontal'):
-            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*.07 * self.direction.x)
+            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.1 * self.direction.x)
             if not self.chasing_player:
                 self.get_random_direction()
 
-        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*.07 * self.direction.y)
+        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.1 * self.direction.y)
         if self.check_collision('vertical'):
-            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*.07 * self.direction.y)
+            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.1 * self.direction.y)
             if not self.chasing_player:
                 self.get_random_direction()
         # Mise à jour de la position réelle
@@ -252,7 +253,7 @@ class Enemy(pygame.sprite.Sprite):
                 if self.status in ['up', 'down', 'left', 'right']:
                     self.status = f'{self.status}_attack'
 
-                self.player.health -= self.attack_damage
+                self.player.health -= (self.attack_damage + 2*self.player.alert)
                 debug(f'Player Health: {self.player.health}', y=10, x=10)
 
     def receive_damage(self, damage):
