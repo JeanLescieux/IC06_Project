@@ -17,7 +17,7 @@ class Game:
 		self.clock = pygame.time.Clock()
 
 		self.nLevel = 1
-		self.alert = 4
+		self.alert = 0
 		self.level = Level(self.alert)
 		self.state = 'menu'
 

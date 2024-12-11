@@ -18,7 +18,7 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__(groups)
         self.image = pygame.transform.scale(pygame.image.load('../graphics/enemy/idle_down/0.png').convert_alpha(),(16,16))
         self.rect = self.image.get_rect(topleft=pos)
-        self.hitbox = self.rect.inflate(0, -10)
+        self.hitbox = self.rect.inflate(-5, -5)
         self.health = 20
 
         self.has_key = has_key  # Cet ennemi possède une clé ?
@@ -104,12 +104,6 @@ class Enemy(pygame.sprite.Sprite):
             self.last_direction_change_time = current_time
 
 
-
-    # def update_orientation(self):
-    #     if self.direction.magnitude() != 0:
-    #         angle = self.direction.angle_to(pygame.math.Vector2(0, -1))
-    #         self.image = pygame.transform.rotate(self.original_image, angle)
-    #         self.rect = self.image.get_rect(center=self.rect.center)
     
     def is_player_in_line_of_sight(self, player_center, large=False):
         """ Vérifie si le joueur est dans le champ de vision. 
@@ -187,27 +181,29 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     self.direction = pygame.math.Vector2(0, 0)  # Pause aléatoire
                     self.last_direction_change_time = current_time
-                    self.pause_time = 2000/(self.player.alert + 1)  # Durée de la pause
+                    self.pause_time = 2000/(self.player.alert+1)  # Durée de la pause
 
         # 6. Normaliser la direction avant d'appliquer le déplacement
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
         # 7. Calcul du facteur de vitesse en fonction de l'alerte du joueur
         alert_bonus = self.player.alert  # Multiplier par un facteur (ajuster selon la rapidité désirée)
-
+        
         # 8. Appliquer le bonus d'alerte en fonction de la direction de l'ennemi
-        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.1 * self.direction.x)
+        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.11 * self.direction.x)
         
         if self.check_collision('horizontal'):
-            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.1 * self.direction.x)
+            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.11 * self.direction.x)
             if not self.chasing_player:
                 self.get_random_direction()
+        
 
-        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.1 * self.direction.y)
+        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.11 * self.direction.y)
         if self.check_collision('vertical'):
-            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.1 * self.direction.y)
+            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.11 * self.direction.y)
             if not self.chasing_player:
                 self.get_random_direction()
+        
         # Mise à jour de la position réelle
         self.rect.center = self.hitbox.center
 
@@ -221,21 +217,7 @@ class Enemy(pygame.sprite.Sprite):
                 return True
         return False
 
-    # def attack(self):
-    #     current_time = pygame.time.get_ticks()
-    #     if current_time - self.last_attack_time >= self.attack_cooldown:
-    #         self.last_attack_time = current_time
-    #         player_center = pygame.math.Vector2(self.player.rect.center)
-    #         enemy_center = pygame.math.Vector2(self.rect.center)
-
-    #         distance = player_center.distance_to(enemy_center)
-    #         direction_to_player = (player_center - enemy_center).normalize()
-    #         if distance <= self.attack_radius and self.direction.dot(direction_to_player) > 0.7:
-    #             self.weapon_visible = True
-    #             self.weapon_display_start = current_time
-    #             self.player.health -= self.attack_damage
-    #             debug(f'Player Health: {self.player.health}', y=10, x=10)
-
+   
     def attack(self):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_attack_time >= self.attack_cooldown:
@@ -255,6 +237,10 @@ class Enemy(pygame.sprite.Sprite):
 
                 self.player.health -= (self.attack_damage + 2*self.player.alert)
                 debug(f'Player Health: {self.player.health}', y=10, x=10)
+            else:
+                self.attacking = False
+        else:
+            self.attacking = False
 
     def receive_damage(self, damage):
         self.health = max(self.health - damage, 0)

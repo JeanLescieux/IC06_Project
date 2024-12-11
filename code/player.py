@@ -5,7 +5,7 @@ from support import import_folder
 from enemy import Enemy
 from key import Key
 
-ATTACK_RADIUS = 25  # Rayon d'attaque en pixels
+ATTACK_RADIUS = 40  # Rayon d'attaque en pixels
 WEAPON_DISPLAY_TIME = 200  # Durée d'affichage de l'image de l'arme en millisecondes
 SHIELD_DURATION = 3000  # Durée du bouclier en millisecondes
 
