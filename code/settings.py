@@ -1,11 +1,12 @@
 # game setup
+# settings.py
 WIDTH    = 1280	
 HEIGTH   = 720
 FPS      = 60
 TILESIZE = 16
 ZOOM_FACTOR = 15
 HITBOX_OFFSET = {
-    'player': -10,
+    'player': -6,
     'object': -40,
     'grass': -10,
     'invisible': 0,

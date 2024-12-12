@@ -5,7 +5,11 @@ from generation_csv import generate_and_save_csv
 
 class Game:
 	def __init__(self):
-		generate_and_save_csv()
+		pygame.mixer.init()
+		pygame.mixer.music.load("../audio/8bit Dungeon Level.mp3")
+		pygame.mixer.music.play(-1)
+
+		
 		# general setup
 		pygame.init()
 		self.screen = pygame.display.set_mode((WIDTH,HEIGTH))
@@ -13,7 +17,8 @@ class Game:
 		self.clock = pygame.time.Clock()
 
 		self.nLevel = 1
-		self.level = Level()
+		self.alert = 0
+		
 		self.state = 'menu'
 
 	def display_menu(self):
@@ -21,15 +26,16 @@ class Game:
 		self.screen.fill('black')
 		font_title = pygame.font.Font(None, 74)  # Police pour le titre
 		font_text = pygame.font.Font(None, 36)  # Police pour le texte secondaire
-		
-		# Texte principal
+	
+		# Texte principal 
 		title_text = font_title.render('Prison Maze', True, 'white')
 		
 		# Texte secondaire découpé en plusieurs lignes
 		instructions = [
 			"Explore the labyrinth to retrieve the key",
 			"and free the witch. Watch out for the guards,",
-			"who may sound the alarm."
+			"who may sound the alarm.",
+			"beating them from behind may be pretty effective..."
 		]
 		
 		# Texte pour jouer
@@ -57,8 +63,10 @@ class Game:
 
 	def next_level(self):
 		self.nLevel += 1
-		self.level = Level()  # Génère un nouveau niveau
+		self.alert = self.level.player.alert
 		generate_and_save_csv()
+		self.level = Level(self.alert)  # Génère un nouveau niveau
+		
 
 	def run(self):
 		while True:
@@ -70,6 +78,8 @@ class Game:
 				if self.state == 'menu' and event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_SPACE:  # Lancer le jeu
 						self.state = 'game'
+						generate_and_save_csv()
+						self.level = Level(0)
 			if self.state == 'menu':
 				self.display_menu()
 			elif self.state == 'game':
@@ -77,9 +87,14 @@ class Game:
 				self.level.run()
 				if self.level.check_victory():
 					self.next_level()
+				if self.level.checkDeath():
+					self.state = 'menu'
 			pygame.display.update()
 			self.clock.tick(FPS)
 
+
+
+
 if __name__ == '__main__':
-    game = Game()
-    game.run()
+    GAME = Game()
+    GAME.run()

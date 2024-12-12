@@ -5,18 +5,18 @@ from support import import_folder
 from enemy import Enemy
 from key import Key
 
-ATTACK_RADIUS = 25  # Rayon d'attaque en pixels
+ATTACK_RADIUS = 40  # Rayon d'attaque en pixels
 WEAPON_DISPLAY_TIME = 200  # Durée d'affichage de l'image de l'arme en millisecondes
 SHIELD_DURATION = 3000  # Durée du bouclier en millisecondes
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, obstacle_sprites, visibleSprite, show_message_callback):
+    def __init__(self, pos, groups, obstacle_sprites, visibleSprite, show_message_callback, alert):
         super().__init__(groups)
         # self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(),(32,32))
         self.image = pygame.transform.scale(pygame.image.load('../graphics/test/player.png').convert_alpha(),(16,16))
         self.rect = self.image.get_rect(topleft=pos)
         self.hitbox = self.rect.inflate(-6, HITBOX_OFFSET['player'])
-
+        self.alert = alert
         self.attack_direction = pygame.math.Vector2(0, -1)
         self.health = 100
         self.attack_damage = 10
@@ -25,7 +25,6 @@ class Player(pygame.sprite.Sprite):
         self.direction = pygame.math.Vector2(0, -1)
         self.speed = 2
         self.space_held = False
-        self.alert = 0
         self.has_key = False
         self.has_witch = False
 
@@ -136,6 +135,7 @@ class Player(pygame.sprite.Sprite):
                 self.show_message("Key found !")   
 
     def update(self):
+        
         # Gérer la durée du bouclier
         if self.shield_active and pygame.time.get_ticks() - self.shield_timer >= SHIELD_DURATION:
             self.shield_active = False  # Désactive le bouclier après la durée
@@ -149,8 +149,6 @@ class Player(pygame.sprite.Sprite):
             self.attacking = False
             self.status = self.status.replace('_attack', '_idle')
 
-        if self.health <= 0:
-            self.kill()
         self.move(self.speed)
         # self.update_orientation()
         self.update_vision()
@@ -161,10 +159,15 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, speed):
         if not self.shield_active:
-            if self.direction.magnitude() != 0:
+            if self.direction.magnitude() > 0.1:
                 self.direction = self.direction.normalize()
+            if self.direction.x != 0 and self.direction.y != 0:
+                self.direction.x = self.direction.x*1.06
+                self.direction.y = self.direction.y*1.06
+                
 
             self.hitbox.x += self.direction.x * speed
+            print(self.direction*speed)
             self.collision('horizontal')
             self.hitbox.y += self.direction.y * speed
             self.collision('vertical')
@@ -234,7 +237,13 @@ class Player(pygame.sprite.Sprite):
                     enemy_center = pygame.math.Vector2(sprite.rect.center)
                     distance = player_center.distance_to(enemy_center)
                     if distance <= ATTACK_RADIUS:
-                        sprite.receive_damage(self.attack_damage)
+                        direction_to_enemy = (enemy_center - player_center).normalize()
+                        dot_product = self.attack_direction.dot(direction_to_enemy)
+                        if dot_product > 0.3:
+                            if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
+                                sprite.receive_damage(self.attack_damage * 10)
+                            else:
+                                sprite.receive_damage(self.attack_damage)
 
 
     def collision(self, direction):

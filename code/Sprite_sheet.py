@@ -1,13 +1,13 @@
 import pygame
 import sys
 
-# 初始化 Pygame
+
 pygame.init()
 
-# 设置屏幕大小
+
 screen = pygame.display.set_mode((800, 600))
 
-# 加载贴图集
+
 sprite_sheet = pygame.image.load('../graphics/Tilemap.png').convert_alpha()
 
 # Floor
@@ -297,7 +297,7 @@ sprite_C_Wall3 = sprite_sheet.subsurface(sprite_rect)
 sprite_rect = pygame.Rect(16,96, 64, 32)
 sprite_C_Wall4 = sprite_sheet.subsurface(sprite_rect)
 
-# # 游戏主循环
+# # MAIN GAME
 # running = True
 #
 # while running:
@@ -305,7 +305,6 @@ sprite_C_Wall4 = sprite_sheet.subsurface(sprite_rect)
 #         if event.type == pygame.QUIT:
 #             running = False
 #
-#     # 清屏
 #     screen.fill((0, 0, 0))
 #
 #     # units
@@ -408,9 +407,9 @@ sprite_C_Wall4 = sprite_sheet.subsurface(sprite_rect)
 #     screen.blit(sprite_C_Wall3, (160, 348))
 #     screen.blit(sprite_C_Wall4, (240, 348))
 #
-#     # 更新屏幕
+#
 #     pygame.display.flip()
 #
-# # 退出 Pygame
+#
 # pygame.quit()
 # sys.exit()

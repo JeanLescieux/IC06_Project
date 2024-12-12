@@ -1,3 +1,4 @@
+import math
 import random
 import pygame
 from settings import TILESIZE, ZOOM_FACTOR, WIDTH, HEIGTH, FONT_PATH
@@ -16,8 +17,11 @@ def draw_message(screen, message, font_size, color, pos):
         screen.blit(text_surface, text_rect)
 
 class Level:
-    def __init__(self):
+    def __init__(self, alert):
         # Sprite groups
+        self.alert = alert
+        pygame.mixer.music.load("../audio/8bit Dungeon Level.mp3")
+        pygame.mixer.music.play(-1)
         self.visible_sprites = YSortCameraGroup()
         self.obstacle_sprites = pygame.sprite.Group()
         player_spawn = None  # Initialisation par défaut
@@ -25,8 +29,7 @@ class Level:
         self.message = ""  # Message à afficher
         self.message_timer = 0  # Durée d'affichage du message
         self.message_duration = 3000  # Durée (en ms) avant disparition du message
-
-        self.newEnnemy = 10000
+        self.newEnnemy = 5000
         self.newEnnemyTimer = 0
 
         # Import layout from the CSV file
@@ -113,7 +116,7 @@ class Level:
                     for sprite in self.visible_sprites:
                         if sprite.rect.topleft == (x, y):
                             sprite.kill()  # Supprimer tout sprite existant à cette position
-                    Tile((x, y), [self.visible_sprites], 'floor', self.graphics['floor'])  # Placer le sol
+                    Tile((x, y), [self.visible_sprites], 'floor')  # Placer le sol
 
                 # Si la case est une witch, placer le sprite witch au-dessus
                 if col == '2':  # Case pour l'objectif
@@ -122,11 +125,13 @@ class Level:
 
         # Position de spawn du joueur
         if player_spawn:
-            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.show_message)
+            self.player_spawn = player_spawn
+            self.player = Player(player_spawn, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.show_message, self.alert)
             self.spawn_enemies(layout, num_enemies=5)
         else:
+            self.player_spawn = (100, 100)
             # Position par défaut si aucune position de spawn trouvée
-            self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites)
+            self.player = Player((100, 100), [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.visible_sprites, self.alert)
             self.spawn_enemies(layout, num_enemies=5)
 
     def is_corner_wall(self, layout, row, col):
@@ -169,25 +174,25 @@ class Level:
         return None
     
     # Dans la classe Level, ajoutez cette méthode
-    def spawn_enemies(self, layout, num_enemies=5):
-        """Fait apparaître un certain nombre d'ennemis sur des cases marchables."""
-        walkable_positions = []
+    # def spawn_enemies(self, layout, num_enemies=5):
+    #     """Fait apparaître un certain nombre d'ennemis sur des cases marchables."""
+    #     walkable_positions = []
 
-        # Parcourir le layout pour trouver toutes les cases marchables
-        for row_index, row in enumerate(layout):
-            for col_index, col in enumerate(row):
-                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
-                    x = col_index * TILESIZE
-                    y = row_index * TILESIZE
-                    walkable_positions.append((x, y))
+    #     # Parcourir le layout pour trouver toutes les cases marchables
+    #     for row_index, row in enumerate(layout):
+    #         for col_index, col in enumerate(row):
+    #             if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
+    #                 x = col_index * TILESIZE
+    #                 y = row_index * TILESIZE
+    #                 walkable_positions.append((x, y))
 
-        # Mélanger les positions pour garantir une répartition aléatoire
-        random.shuffle(walkable_positions)
+    #     # Mélanger les positions pour garantir une répartition aléatoire
+    #     random.shuffle(walkable_positions)
 
-        # Faire apparaître les ennemis à partir des positions disponibles
-        for _ in range(min(num_enemies, len(walkable_positions))):
-            pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
-            Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
+    #     # Faire apparaître les ennemis à partir des positions disponibles
+    #     for _ in range(min(num_enemies, len(walkable_positions))):
+    #         pos = walkable_positions.pop()  # Retirer une position pour éviter les doublons
+    #         Enemy(pos, [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
 
 
     def spawn_enemies(self, layout, num_enemies=5):
@@ -196,7 +201,7 @@ class Level:
         # Trouver les positions marchables
         for row_index, row in enumerate(layout):
             for col_index, col in enumerate(row):
-                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index):
+                if col == '0' and self.is_surrounded_by_floor(layout, row_index, col_index) and math.dist(self.player_spawn, (col_index * TILESIZE, row_index * TILESIZE)) > 200:
                     x = col_index * TILESIZE
                     y = row_index * TILESIZE
                     walkable_positions.append((x, y))
@@ -214,8 +219,11 @@ class Level:
     def spawn_new_enemies(self):
         possible_spawns = []
         for sprite in self.visible_sprites:
-            if getattr(sprite, 'sprite_type', None) == 'floor' and not getattr(sprite, 'discovered', False):
-                possible_spawns.append(getattr(sprite, 'pos', None))
+                player_center = pygame.math.Vector2(self.player.rect.center)
+                sprite_center = pygame.math.Vector2(sprite.rect.center)
+                distance = player_center.distance_to(sprite_center)
+                if getattr(sprite, 'sprite_type', None) == 'floor' and distance > 200:
+                    possible_spawns.append(getattr(sprite, 'pos', None))
         if len(possible_spawns) > 0:
             pos = random.randint(0, len(possible_spawns))
             Enemy(possible_spawns[pos], [self.visible_sprites, self.obstacle_sprites], self.obstacle_sprites, self.player)
@@ -237,6 +245,12 @@ class Level:
     def create_attack(self):
         pass
     
+    def checkDeath(self):
+        if self.player.health <= 0:
+            return True
+        else:
+            return False
+
     def check_witch_interaction(self):
         """Vérifie si le joueur interagit avec la sorcière."""
         for sprite in self.obstacle_sprites:
@@ -245,6 +259,8 @@ class Level:
                     self.player.has_witch = True
                     sprite.kill()  # Supprime le sprite witch après interaction
                     self.show_message("You saved the witch, time to get out fast !")
+                    pygame.mixer.music.load("../audio/8bit Dungeon Boss.mp3")
+                    pygame.mixer.music.play(-1)
                 else:
                     self.show_message("You need a key kept by a guard to save the witch !")
 
@@ -272,6 +288,7 @@ class Level:
     
     def run(self):
         """Exécute le niveau (mise à jour et dessin)."""
+        
         self.visible_sprites.custom_draw(self.player)
         self.visible_sprites.update()
         self.check_witch_interaction()
@@ -327,18 +344,22 @@ class YSortCameraGroup(pygame.sprite.Group):
                 )
                 if enemy_on_discovered_tile:
                     offset_pos = sprite.rect.topleft - self.offset
+                    offset_pos.y -= 6
                     self.display_surface.blit(sprite.image, offset_pos)
-                    sprite.display_weapon(self.display_surface, self.offset)
+                    #sprite.display_weapon(self.display_surface, self.offset)
 
         # Troisième passage : Dessiner les autres éléments (joueur, bouclier, etc.)
         for sprite in sorted(self.sprites(), key=lambda sprite: sprite.rect.centery):
             if getattr(sprite, 'sprite_type', None) not in ['floor', 'wall', 'barrel', 'witch'] and not isinstance(sprite, Enemy):
                 offset_pos = sprite.rect.topleft - self.offset
+                if isinstance(sprite, Player):
+                    offset_pos.y -= 6
                 self.display_surface.blit(sprite.image, offset_pos)
 
         # Dessiner les armes et le bouclier du joueur
         # player.draw_weapon(self.display_surface, self.offset)
         player.draw_shield(self.display_surface, self.offset)
+        
 
             
 

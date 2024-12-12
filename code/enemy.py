@@ -1,9 +1,14 @@
 import pygame
 import random
+
+#from sqlalchemy.engine import TupleResult
+
 from settings import *
 from debug import debug
 from tile import Tile
 from key import Key
+from support import import_folder
+
 
 # Variable globale alert (à définir dans votre script principal)
 
@@ -11,14 +16,13 @@ from key import Key
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos, groups, obstacle_sprites, player, has_key=False):
         super().__init__(groups)
-        self.original_image = pygame.transform.scale(pygame.image.load('../graphics/test/squid.png').convert_alpha(),(16,16))
-        self.image = self.original_image
+        self.image = pygame.transform.scale(pygame.image.load('../graphics/enemy/idle_down/0.png').convert_alpha(),(16,16))
         self.rect = self.image.get_rect(topleft=pos)
-        self.hitbox = self.rect.inflate(0, -10)
+        self.hitbox = self.rect.inflate(-5, -5)
         self.health = 20
 
         self.has_key = has_key  # Cet ennemi possède une clé ?
-
+        self.alert_cooldown = 1500
         self.direction = pygame.math.Vector2(0, -1)
         self.speed = 1
         self.attack_cooldown = 500
@@ -37,7 +41,7 @@ class Enemy(pygame.sprite.Sprite):
         self.large_vision_angle = 360
 
         self.attack_damage = 10
-        self.vision_angle = 90  # Angle de vision en degrés
+        self.vision_angle = 150  # Angle de vision en degrés
 
         self.weapon_image = pygame.transform.scale(pygame.image.load('../graphics/test/attack.png').convert_alpha(),(16,16))
         self.weapon_rect = self.weapon_image.get_rect()
@@ -47,8 +51,26 @@ class Enemy(pygame.sprite.Sprite):
         self.chasing_player = False
         self.alert = False
 
+        self.import_enemy_assets()
+        self.status = 'idle_down'
+        self.frame_index = 0
+        self.animation_speed = 0.2
+        self.attacking = False
+        self.attack_start_time = 0
         # Temps depuis la détection du joueur
         self.detection_time = None
+
+    def import_enemy_assets(self):
+        character_path = '../graphics/enemy/'
+        self.animations = {
+            'move_up': [], 'move_down': [], 'move_left': [], 'move_right': [],
+            'attack_up': [], 'attack_down': [], 'attack_left': [], 'attack_right': [],
+            'idle_down': [], 'idle_left': [], 'idle_right': [], 'idle_up': []
+        }
+        for animation in self.animations.keys():
+            full_path = character_path + animation
+            original_frames = import_folder(full_path)
+            self.animations[animation] = self.scale_animations(original_frames, size=(26, 26))
 
     def display_weapon(self, screen, offset):
         """ Affiche l'image de l'arme temporairement si l'ennemi attaque. """
@@ -69,11 +91,19 @@ class Enemy(pygame.sprite.Sprite):
         ]
         self.direction = random.choice(directions)
 
-    def update_orientation(self):
-        if self.direction.magnitude() != 0:
-            angle = self.direction.angle_to(pygame.math.Vector2(0, -1))
-            self.image = pygame.transform.rotate(self.original_image, angle)
-            self.rect = self.image.get_rect(center=self.rect.center)
+
+
+    def handle_random_direction(self):
+        current_time = pygame.time.get_ticks()
+
+        if current_time - self.last_direction_change_time >= self.pause_time:
+            if self.direction == pygame.math.Vector2(0, 0):
+                self.get_random_direction()
+            else:
+                self.direction = pygame.math.Vector2(0, 0)
+            self.last_direction_change_time = current_time
+
+
     
     def is_player_in_line_of_sight(self, player_center, large=False):
         """ Vérifie si le joueur est dans le champ de vision. 
@@ -104,6 +134,7 @@ class Enemy(pygame.sprite.Sprite):
         return True
 
     def move(self):
+        
         # 1. Vérification de la direction actuelle pour éviter un déplacement constant vers le haut
         if self.direction.magnitude() != 0:
             self.last_non_zero_direction = self.direction.normalize()
@@ -136,7 +167,7 @@ class Enemy(pygame.sprite.Sprite):
             debug('En Poursuite!', y=60, x=10)
 
             # Vérifier si le joueur est en alerte après 2 secondes de poursuite
-            if pygame.time.get_ticks() - self.detection_time >= 2000 and not self.alert:
+            if pygame.time.get_ticks() - self.detection_time >= self.alert_cooldown and not self.alert:
                 self.player.alert += 1
                 self.alert = True
         else:
@@ -150,32 +181,33 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     self.direction = pygame.math.Vector2(0, 0)  # Pause aléatoire
                     self.last_direction_change_time = current_time
-                    self.pause_time = 1000  # Durée de la pause
+                    self.pause_time = 2000/(self.player.alert+1)  # Durée de la pause
 
         # 6. Normaliser la direction avant d'appliquer le déplacement
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
-
         # 7. Calcul du facteur de vitesse en fonction de l'alerte du joueur
         alert_bonus = self.player.alert  # Multiplier par un facteur (ajuster selon la rapidité désirée)
-
+        
         # 8. Appliquer le bonus d'alerte en fonction de la direction de l'ennemi
-        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
+        self.hitbox.x += (self.direction.x * self.speed + alert_bonus*0.11 * self.direction.x)
+        
         if self.check_collision('horizontal'):
-            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.2 * self.direction.x)
+            self.hitbox.x -= (self.direction.x * self.speed + alert_bonus*0.11 * self.direction.x)
             if not self.chasing_player:
                 self.get_random_direction()
+        
 
-        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
+        self.hitbox.y += (self.direction.y * self.speed + alert_bonus*0.11 * self.direction.y)
         if self.check_collision('vertical'):
-            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.2 * self.direction.y)
+            self.hitbox.y -= (self.direction.y * self.speed + alert_bonus*0.11 * self.direction.y)
             if not self.chasing_player:
                 self.get_random_direction()
+        
         # Mise à jour de la position réelle
         self.rect.center = self.hitbox.center
 
         # Affichage de la santé de l'ennemi pour le debug
-        debug(f'Enemy Health: {self.health}', y=40, x=10)
 
 
         
@@ -185,6 +217,7 @@ class Enemy(pygame.sprite.Sprite):
                 return True
         return False
 
+   
     def attack(self):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_attack_time >= self.attack_cooldown:
@@ -194,11 +227,20 @@ class Enemy(pygame.sprite.Sprite):
 
             distance = player_center.distance_to(enemy_center)
             direction_to_player = (player_center - enemy_center).normalize()
+
             if distance <= self.attack_radius and self.direction.dot(direction_to_player) > 0.7:
-                self.weapon_visible = True
-                self.weapon_display_start = current_time
-                self.player.health -= self.attack_damage
+                self.attacking = True
+                self.attack_start_time = current_time
+
+                if self.status in ['up', 'down', 'left', 'right']:
+                    self.status = f'{self.status}_attack'
+
+                self.player.health -= (self.attack_damage + 2*self.player.alert)
                 debug(f'Player Health: {self.player.health}', y=10, x=10)
+            else:
+                self.attacking = False
+        else:
+            self.attacking = False
 
     def receive_damage(self, damage):
         self.health = max(self.health - damage, 0)
@@ -211,5 +253,57 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         self.move()
-        self.update_orientation()
+        self.update_status()
+        self.animate()
+
+        if not self.chasing_player:
+            self.handle_random_direction()
+
         self.attack()
+
+
+    def update_status(self):
+        if self.attacking:
+            if self.direction.x > 0:
+                self.status = 'attack_right'
+            elif self.direction.x < 0:
+                self.status = 'attack_left'
+            elif self.direction.y > 0:
+                self.status = 'attack_down'
+            elif self.direction.y < 0:
+                self.status = 'attack_up'
+        elif self.direction == pygame.math.Vector2(1, 0):
+                self.status = 'move_right'
+        elif self.direction == pygame.math.Vector2(-1, 0):
+                self.status = 'move_left'
+        elif self.direction == pygame.math.Vector2(0, 1):
+                self.status = 'move_down'
+        elif self.direction == pygame.math.Vector2(0, -1):
+                self.status = 'move_up'
+        elif self.direction == pygame.math.Vector2(0, 0) and self.last_non_zero_direction == pygame.math.Vector2(0, -1):
+                self.status = 'idle_up'
+        elif self.direction == pygame.math.Vector2(0, 0) and self.last_non_zero_direction == pygame.math.Vector2(0, 1):
+                self.status = 'idle_down'
+        elif self.direction == pygame.math.Vector2(0, 0) and self.last_non_zero_direction == pygame.math.Vector2(-1, 0):
+                self.status = 'idle_left'
+        elif self.direction == pygame.math.Vector2(0, 0) and self.last_non_zero_direction == pygame.math.Vector2(1, 0):
+                self.status = 'idle_right'
+        # else:
+        #     self.status = 'idle_down'
+
+    # Utilisé pour jouer des animations
+    def animate(self):
+        animation = self.animations[self.status]
+        self.frame_index += self.animation_speed
+        if self.frame_index >= len(animation):
+            self.frame_index = 0
+        self.image = animation[int(self.frame_index)]
+        self.rect = self.image.get_rect(center=self.hitbox.center)
+
+    # Utilisé pour modifier la taille des animations jouées
+    def scale_animations(self, animation_frames, size):
+        scaled_frames = []
+        for frame in animation_frames:
+            scaled_frame = pygame.transform.scale(frame, size)
+            scaled_frames.append(scaled_frame)
+        return scaled_frames
