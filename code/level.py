@@ -245,6 +245,12 @@ class Level:
     def create_attack(self):
         pass
     
+    def checkDeath(self):
+        if self.player.health <= 0:
+            return True
+        else:
+            return False
+
     def check_witch_interaction(self):
         """Vérifie si le joueur interagit avec la sorcière."""
         for sprite in self.obstacle_sprites:

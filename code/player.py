@@ -149,8 +149,6 @@ class Player(pygame.sprite.Sprite):
             self.attacking = False
             self.status = self.status.replace('_attack', '_idle')
 
-        if self.health <= 0:
-            self.kill()
         self.move(self.speed)
         # self.update_orientation()
         self.update_vision()
@@ -161,10 +159,15 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, speed):
         if not self.shield_active:
-            if self.direction.magnitude() != 0:
+            if self.direction.magnitude() > 0.1:
                 self.direction = self.direction.normalize()
+            if self.direction.x != 0 and self.direction.y != 0:
+                self.direction.x = self.direction.x*1.06
+                self.direction.y = self.direction.y*1.06
+                
 
             self.hitbox.x += self.direction.x * speed
+            print(self.direction*speed)
             self.collision('horizontal')
             self.hitbox.y += self.direction.y * speed
             self.collision('vertical')

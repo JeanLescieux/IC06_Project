@@ -9,7 +9,7 @@ class Game:
 		pygame.mixer.music.load("../audio/8bit Dungeon Level.mp3")
 		pygame.mixer.music.play(-1)
 
-		generate_and_save_csv()
+		
 		# general setup
 		pygame.init()
 		self.screen = pygame.display.set_mode((WIDTH,HEIGTH))
@@ -18,7 +18,7 @@ class Game:
 
 		self.nLevel = 1
 		self.alert = 0
-		self.level = Level(self.alert)
+		
 		self.state = 'menu'
 
 	def display_menu(self):
@@ -78,6 +78,8 @@ class Game:
 				if self.state == 'menu' and event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_SPACE:  # Lancer le jeu
 						self.state = 'game'
+						generate_and_save_csv()
+						self.level = Level(0)
 			if self.state == 'menu':
 				self.display_menu()
 			elif self.state == 'game':
@@ -85,6 +87,8 @@ class Game:
 				self.level.run()
 				if self.level.check_victory():
 					self.next_level()
+				if self.level.checkDeath():
+					self.state = 'menu'
 			pygame.display.update()
 			self.clock.tick(FPS)
 
