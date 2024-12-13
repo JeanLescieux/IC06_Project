@@ -60,6 +60,9 @@ class Enemy(pygame.sprite.Sprite):
         # Temps depuis la détection du joueur
         self.detection_time = None
 
+        self.hurtSound = pygame.mixer.Sound("../audio/player_hurt.mp3")
+        self.alarmSound = pygame.mixer.Sound("../audio/alert.mp3")
+    
     def import_enemy_assets(self):
         character_path = '../graphics/enemy/'
         self.animations = {
@@ -177,6 +180,7 @@ class Enemy(pygame.sprite.Sprite):
             # Vérifier si le joueur est en alerte après 2 secondes de poursuite
             if pygame.time.get_ticks() - self.detection_time >= self.alert_cooldown and not self.alert:
                 self.player.alert += 1
+                self.alarmSound.play()
                 self.alert = True
         else:
             # 5. Comportement de patrouille aléatoire si le joueur n'est pas poursuivi
@@ -244,7 +248,8 @@ class Enemy(pygame.sprite.Sprite):
                     self.status = f'{self.status}_attack'
 
                 self.player.health -= (self.attack_damage + 2*self.player.alert)
-                #debug(f'Player Health: {self.player.health}', y=10, x=10)
+                self.hurtSound.play()
+                debug(f'Player Health: {self.player.health}', y=10, x=10)
             else:
                 self.attacking = False
         else:
