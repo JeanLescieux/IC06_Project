@@ -277,8 +277,6 @@ class Level:
                     return False
         return False
 
-    
-
 
     def destroy_attack(self):
         print("Attaque du joueur détruite !")
@@ -308,7 +306,7 @@ class Level:
     def draw_message(self, screen):
         """Affiche le message si le délai n'est pas expiré."""
         if self.message and pygame.time.get_ticks() - self.message_timer < self.message_duration:
-            draw_message(screen, self.message, 24, (255, 255, 255), (WIDTH // 2, HEIGTH // 2))
+            draw_message(screen, self.message, 30, (255, 255, 255), (WIDTH // 2, HEIGTH // 4))
         else:
             self.message = ""  # Efface le message après expiration
 
