@@ -27,6 +27,7 @@ class Player(pygame.sprite.Sprite):
         self.space_held = False
         self.has_key = False
         self.has_witch = False
+        
 
         self.show_message = show_message_callback
 
@@ -57,6 +58,7 @@ class Player(pygame.sprite.Sprite):
         self.shield_timer = 0  # Chronomètre du bouclier
         self.shield_image = pygame.image.load('../graphics/test/shield.png').convert_alpha()  # Image du bouclier
         self.shield_rect = self.rect.inflate(40, 40)  # Ajustez la taille du bouclier
+        self.touchSound = pygame.mixer.Sound("../audio/sword2.wav")
 
     def import_player_assets(self):
         character_path = '../graphics/player/'
@@ -242,9 +244,10 @@ class Player(pygame.sprite.Sprite):
                         if dot_product > 0.3:
                             if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
                                 sprite.receive_damage(self.attack_damage * 10)
+                                self.touchSound.play()
                             else:
                                 sprite.receive_damage(self.attack_damage)
-
+                                self.touchSound.play()
 
     def collision(self, direction):
         for sprite in self.obstacle_sprites:
