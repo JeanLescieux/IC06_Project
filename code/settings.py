@@ -16,7 +16,7 @@ HITBOX_OFFSET = {
 }
 
 # ui 
-FONT_PATH = "../graphics/font/NFPixels-Regular.ttf"
+FONT_PATH = "../graphics/font/horrorspray.otf"
 BAR_HEIGHT = 20
 HEALTH_BAR_WIDTH = 200
 ENERGY_BAR_WIDTH = 140
