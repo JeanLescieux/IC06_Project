@@ -27,6 +27,7 @@ class Player(pygame.sprite.Sprite):
         self.space_held = False
         self.has_key = False
         self.has_witch = False
+        
 
         self.show_message = show_message_callback
 
@@ -57,6 +58,7 @@ class Player(pygame.sprite.Sprite):
         self.shield_timer = 0  # Chronomètre du bouclier
         self.shield_image = pygame.image.load('../graphics/test/shield.png').convert_alpha()  # Image du bouclier
         self.shield_rect = self.rect.inflate(40, 40)  # Ajustez la taille du bouclier
+        self.touchSound = pygame.mixer.Sound("../audio/sword2.wav")
 
     def import_player_assets(self):
         character_path = '../graphics/player/'
@@ -134,6 +136,12 @@ class Player(pygame.sprite.Sprite):
                 sprite.kill()  # Supprime la clé du jeu
                 self.show_message("Key found !")   
 
+    def draw_text(self, screen, text, pos, font_size=18, color=(255, 255, 255)):
+        """Affiche un texte sur l'écran."""
+        font = pygame.font.Font(FONT_PATH, font_size)
+        text_surface = font.render(text, True, color)
+        screen.blit(text_surface, pos)
+
     def update(self):
         
         # Gérer la durée du bouclier
@@ -152,9 +160,11 @@ class Player(pygame.sprite.Sprite):
         self.move(self.speed)
         # self.update_orientation()
         self.update_vision()
-        debug(f'Player Health: {self.health}', y=10, x=10)
-        debug(f'Alert Level: {self.alert}', y=80, x=10)
+        self.draw_text(self.visible_sprite.display_surface, f'Player Health  {self.health}', (10, 10), font_size=30, color=(9, 121, 105))
+        self.draw_text(self.visible_sprite.display_surface, f'Alert Level  {self.alert}', (10, 40), font_size=30, color=(136, 8, 8))
         self.check_key_pickup()
+        key_status = "Key found, go get the witch!" if self.has_key else "Key Not found, a guard may keep it!"
+        self.draw_text(self.visible_sprite.display_surface, key_status, (10, 90), font_size=30, color=(211, 211, 211))
     
 
     def move(self, speed):
@@ -242,9 +252,10 @@ class Player(pygame.sprite.Sprite):
                         if dot_product > 0.3:
                             if hasattr(sprite, 'last_non_zero_direction') and self.attack_direction.dot(sprite.last_non_zero_direction) > 0.0:
                                 sprite.receive_damage(self.attack_damage * 10)
+                                self.touchSound.play()
                             else:
                                 sprite.receive_damage(self.attack_damage)
-
+                                self.touchSound.play()
 
     def collision(self, direction):
         for sprite in self.obstacle_sprites:

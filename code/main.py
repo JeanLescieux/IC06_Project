@@ -18,8 +18,8 @@ class Game:
 		pygame.mixer.init()
 		pygame.mixer.music.load("../audio/8bit Dungeon Level.mp3")
 		pygame.mixer.music.play(-1)
-
-		# General setup
+		
+		# general setup
 		pygame.init()
 		self.screen = pygame.display.set_mode((WIDTH, HEIGTH))
 		pygame.display.set_caption('Prison maze')
@@ -156,6 +156,7 @@ class Game:
 			elif self.state == 'game':
 				self.screen.fill('black')
 				self.level.run()
+				draw_text(self.screen, f'Levels Completed  {self.nLevel - 1}', font_size=30, color=(131, 67, 51))
 				if self.level.check_victory():
 					self.next_level()
 				if self.level.checkDeath():
@@ -166,6 +167,14 @@ class Game:
 
 			pygame.display.update()
 			self.clock.tick(FPS)
+
+def draw_text(screen, text, font_size=24, color=(255, 255, 255)):
+    """Affiche un texte centré en haut de l'écran."""
+    font = pygame.font.Font(FONT_PATH, font_size)
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect(center=(WIDTH // 2, HEIGTH // 20))  # Position centré en haut
+    screen.blit(text_surface, text_rect)
+
 
 if __name__ == '__main__':
 	GAME = Game()

@@ -60,6 +60,9 @@ class Enemy(pygame.sprite.Sprite):
         # Temps depuis la détection du joueur
         self.detection_time = None
 
+        self.hurtSound = pygame.mixer.Sound("../audio/player_hurt.mp3")
+        self.alarmSound = pygame.mixer.Sound("../audio/alert.mp3")
+    
     def import_enemy_assets(self):
         character_path = '../graphics/enemy/'
         self.animations = {
@@ -133,6 +136,13 @@ class Enemy(pygame.sprite.Sprite):
 
         return True
 
+    def draw_text(self, screen, text, pos, font_size=18, color=(255, 255, 255)):
+        """Affiche un texte sur l'écran."""
+        font = pygame.font.Font(FONT_PATH, font_size)
+        text_surface = font.render(text, True, color)
+        screen.blit(text_surface, pos)
+
+
     def move(self):
         
         # 1. Vérification de la direction actuelle pour éviter un déplacement constant vers le haut
@@ -164,11 +174,13 @@ class Enemy(pygame.sprite.Sprite):
         if self.chasing_player:
             # Mise à jour de la direction vers le joueur
             self.direction = (player_center - enemy_center).normalize()
-            debug('En Poursuite!', y=60, x=10)
+            self.draw_text(self.player.visible_sprite.display_surface, "You are being chased!!", (10, 120), font_size=30, color='yellow')
+
 
             # Vérifier si le joueur est en alerte après 2 secondes de poursuite
             if pygame.time.get_ticks() - self.detection_time >= self.alert_cooldown and not self.alert:
                 self.player.alert += 1
+                self.alarmSound.play()
                 self.alert = True
         else:
             # 5. Comportement de patrouille aléatoire si le joueur n'est pas poursuivi
@@ -236,6 +248,7 @@ class Enemy(pygame.sprite.Sprite):
                     self.status = f'{self.status}_attack'
 
                 self.player.health -= (self.attack_damage + 2*self.player.alert)
+                self.hurtSound.play()
                 debug(f'Player Health: {self.player.health}', y=10, x=10)
             else:
                 self.attacking = False
